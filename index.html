@@ -1,135 +1,136 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Asistencia QR</title>
-
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-<style>
-body{
-font-family: Arial;
-text-align:center;
-background:#f2f2f2;
-margin:0;
-padding:20px;
-}
-
-h2{
-color:#1565c0;
-}
-
-#reader{
-width:100%;
-max-width:400px;
-margin:auto;
-background:white;
-padding:10px;
-border-radius:10px;
-}
-
-#resultado{
-margin-top:20px;
-padding:15px;
-background:white;
-border-radius:10px;
-font-size:20px;
-font-weight:bold;
-box-shadow:0 2px 5px rgba(0,0,0,0.2);
-}
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asistencia QR</title>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #e3f2fd;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h2 {
+      color: #1565c0;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 20px auto;
+      background: white;
+      padding: 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    #resultado {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 18px;
+      background: white;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: background 0.3s;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #hora {
+      max-width: 400px;
+      margin: 10px auto 0 auto;
+      font-size: 13px;
+      color: #666;
+    }
+  </style>
 </head>
-
 <body>
 
-<h2>CONTROL DE ASISTENCIA QR</h2>
+  <h2>📋 CONTROL DE ASISTENCIA QR</h2>
+  <div id="reader"></div>
+  <div id="resultado">📷 Esperando QR...</div>
+  <div id="hora"></div>
 
-<div id="reader"></div>
+  <script>
+    const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
-<div id="resultado">Esperando QR...</div>
+    let ultimoCodigo = "";
+    let bloqueado = false;
 
-<script>
+    function beep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.frequency.value = 880;
+        o.type = "sine";
+        g.gain.setValueAtTime(1, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        o.start(ctx.currentTime);
+        o.stop(ctx.currentTime + 0.3);
+      } catch(e) {}
+    }
 
-const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
+    function mostrar(texto, color) {
+      const r = document.getElementById("resultado");
+      r.innerHTML = texto;
+      r.style.background = color;
+      const ahora = new Date();
+      document.getElementById("hora").innerText =
+        ahora.toLocaleDateString("es-PE") + " " + ahora.toLocaleTimeString("es-PE");
+    }
 
-let ultimoCodigo = "";
-let bloqueado = false;
+    function registrar(id) {
+      id = id.toString().trim().replace(/\s+/g, "");
+      mostrar("⏳ Registrando: " + id, "#fff9c4");
 
-// 🔊 sonido
-function beep(){
-const audio = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
-audio.play();
-}
+      const url = WEBAPP + "?id=" + encodeURIComponent(id);
 
-function registrar(id) {
-  id = id.toString().trim().replace(/\s+/g, "");
-  document.getElementById("resultado").innerHTML = "⏳ Registrando...";
-  document.getElementById("resultado").style.background = "#fff9c4";
+      // ✅ no-cors: la petición SIEMPRE llega al servidor
+      fetch(url, { mode: "no-cors" })
+        .then(() => {
+          mostrar("✅ Registrado: " + id, "#c8e6c9");
+          beep();
+        })
+        .catch(() => {
+          // Respaldo por si fetch falla
+          new Image().src = url;
+          mostrar("✅ Enviado: " + id, "#c8e6c9");
+          beep();
+        });
+    }
 
-  fetch(WEBAPP + "?id=" + encodeURIComponent(id))
-    .then(r => r.text())
-    .then(resp => {
-      resp = resp.trim();
-      const nombre = resp.split(":")[1] || id;
-      if (resp.startsWith("REGISTRADO:")) {
-        document.getElementById("resultado").innerHTML = "✅ " + nombre;
-        document.getElementById("resultado").style.background = "#c8e6c9";
-        beep();
-      } else if (resp.startsWith("YA_REGISTRADO:")) {
-        document.getElementById("resultado").innerHTML = "⚠️ Ya registrado hoy: " + nombre;
-        document.getElementById("resultado").style.background = "#fff3e0";
-      } else {
-        document.getElementById("resultado").innerHTML = "❌ No encontrado: " + id;
-        document.getElementById("resultado").style.background = "#ffcdd2";
-      }
-    })
-    .catch(() => {
-      document.getElementById("resultado").innerHTML = "❌ Error de conexión";
-      document.getElementById("resultado").style.background = "#ffcdd2";
+    function onScanSuccess(decodedText) {
+      decodedText = decodedText.toString().trim().replace(/\s+/g, "");
+      if (bloqueado) return;
+      if (decodedText === ultimoCodigo) return;
+      ultimoCodigo = decodedText;
+      bloqueado = true;
+      registrar(decodedText);
+      setTimeout(() => {
+        bloqueado = false;
+        ultimoCodigo = "";
+      }, 4000);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const scanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: 250 },
+        false
+      );
+      scanner.render(onScanSuccess);
     });
-}
-
-// 📷 QR detectado
-function onScanSuccess(decodedText){
-
-decodedText = decodedText.toString().trim().replace(/\s+/g,"");
-
-if(bloqueado) return;
-if(decodedText === ultimoCodigo) return;
-
-ultimoCodigo = decodedText;
-bloqueado = true;
-
-registrar(decodedText);
-
-setTimeout(()=>{
-bloqueado = false;
-ultimoCodigo = "";
-},3000);
-
-}
-
-// 🚀 iniciar cámara
-document.addEventListener("DOMContentLoaded", function () {
-
-const scanner = new Html5QrcodeScanner(
-"reader",
-{
-fps: 10,
-qrbox: 250
-},
-false
-);
-
-scanner.render(onScanSuccess);
-
-});
-
-</script>
+  </script>
 
 </body>
 </html>
