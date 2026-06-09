@@ -74,11 +74,23 @@ document.getElementById("resultado").innerHTML =
 "Registrando: " + id;
 
 fetch(WEBAPP + "?id=" + encodeURIComponent(id))
-.then(r => r.text())
-.then(data => {
+.then(response => response.text())
+.then(text => {
 
-document.getElementById("resultado").innerHTML = data;
+if(text.startsWith("OK|")){
+const nombre = text.split("|")[1];
+document.getElementById("resultado").innerHTML =
+"REGISTRADO: " + nombre;
 beep();
+}
+else if(text === "NO_ENCONTRADO"){
+document.getElementById("resultado").innerHTML =
+"❌ No encontrado";
+}
+else{
+document.getElementById("resultado").innerHTML =
+"❌ Error servidor";
+}
 
 })
 .catch(() => {
