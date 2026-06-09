@@ -74,30 +74,32 @@ const audio = new Audio(
 audio.play();
 
 }
-
 function registrar(id){
 
 document.getElementById("resultado").innerHTML =
 "Registrando: " + id;
 
-const iframe =
-document.createElement("iframe");
-
-iframe.style.display = "none";
-
-iframe.src =
-WEBAPP +
-"?id=" +
-encodeURIComponent(id) +
-"&t=" +
-Date.now();
-
-document.body.appendChild(iframe);
+fetch(
+WEBAPP + "?id=" + encodeURIComponent(id),
+{
+method:"GET",
+mode:"no-cors"
+}
+)
+.then(() => {
 
 document.getElementById("resultado").innerHTML =
 "✅ Registrado: " + id;
 
 beep();
+
+})
+.catch(error => {
+
+document.getElementById("resultado").innerHTML =
+"❌ " + error;
+
+});
 
 }
 
