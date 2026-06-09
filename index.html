@@ -4,9 +4,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Control de Asistencia QR</title>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+<!-- Librería QR estable -->
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <style>
 body{
@@ -53,6 +55,8 @@ box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 
 <script>
 
+document.addEventListener("DOMContentLoaded", function () {
+
 const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
 let ultimoCodigo = "";
@@ -64,7 +68,7 @@ const audio = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank
 audio.play();
 }
 
-// 📤 enviar a Apps Script
+// 📤 enviar a Google Script
 function registrar(id){
 
 id = id.trim();
@@ -81,8 +85,10 @@ beep();
 
 })
 .catch(() => {
+
 document.getElementById("resultado").innerHTML =
 "❌ Error de conexión";
+
 });
 
 }
@@ -107,8 +113,11 @@ ultimoCodigo = "";
 
 }
 
-// 🚀 iniciar cámara
-window.onload = function () {
+// 🚀 iniciar cámara QR
+if (typeof Html5QrcodeScanner === "undefined") {
+document.getElementById("resultado").innerHTML =
+"❌ Error: no cargó la cámara QR";
+} else {
 
 const scanner = new Html5QrcodeScanner(
 "reader",
@@ -119,9 +128,11 @@ qrbox: 250
 false
 );
 
-scanner.render(onScanSuccess, (error)=>{});
+scanner.render(onScanSuccess);
 
-};
+}
+
+});
 
 </script>
 
