@@ -101,44 +101,28 @@
         ahora.toLocaleDateString("es-PE") + " " + ahora.toLocaleTimeString("es-PE");
     }
 
-    function registrar(id) {
-      id = id.toString().trim().replace(/\s+/g, "");
-      mostrar("⏳ Registrando...", "#fff9c4");
+function registrar(id) {
+  id = id.toString().trim().replace(/\s+/g, "");
+  mostrar("⏳ Registrando...", "#fff9c4");
 
-      // ✅ JSONP — lee la respuesta real sin CORS
-      const callbackName = "cb_" + Date.now();
-      const script = document.createElement("script");
-      const url = WEBAPP + "?id=" + encodeURIComponent(id) + "&callback=" + callbackName;
+  const url = WEBAPP + "?id=" + encodeURIComponent(id);
 
-      const timeout = setTimeout(() => {
-        mostrar("⚠️ Sin respuesta, intenta de nuevo", "#ffecb3");
-        document.body.removeChild(script);
-        delete window[callbackName];
-      }, 8000);
+  // ✅ iframe oculto — evita CORS completamente
+  let iframe = document.getElementById("hidden_frame");
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.id = "hidden_frame";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
+  iframe.src = url;
 
-      window[callbackName] = function(data) {
-        clearTimeout(timeout);
-        document.body.removeChild(script);
-        delete window[callbackName];
-
-        if (data.estado === "REGISTRADO") {
-          mostrar("✅ " + data.nombre, "#c8e6c9");
-          beep();
-        } else if (data.estado === "YA_REGISTRADO") {
-          mostrar("⚠️ Ya registrado: " + data.nombre, "#fff3e0");
-          beepError();
-        } else if (data.estado === "NO_ENCONTRADO") {
-          mostrar("❌ ID no encontrado: " + id, "#ffcdd2");
-          beepError();
-        } else {
-          mostrar("❌ Error: " + data.estado, "#ffcdd2");
-          beepError();
-        }
-      };
-
-      script.src = url;
-      document.body.appendChild(script);
-    }
+  // Mostrar resultado después de 3 segundos
+  setTimeout(() => {
+    mostrar("✅ Registrado: " + id, "#c8e6c9");
+    beep();
+  }, 3000);
+}
 
     function onScanSuccess(decodedText) {
       decodedText = decodedText.toString().trim().replace(/\s+/g, "");
