@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -11,34 +13,34 @@
 <style>
 
 body{
-    font-family: Arial, sans-serif;
-    text-align:center;
-    background:#f5f5f5;
-    margin:0;
-    padding:20px;
+font-family:Arial,sans-serif;
+text-align:center;
+background:#f5f5f5;
+margin:0;
+padding:20px;
 }
 
 h2{
-    color:#1565c0;
+color:#1565c0;
 }
 
 #reader{
-    width:100%;
-    max-width:500px;
-    margin:auto;
-    background:white;
-    padding:10px;
-    border-radius:10px;
+width:100%;
+max-width:500px;
+margin:auto;
+background:white;
+padding:10px;
+border-radius:10px;
 }
 
 #resultado{
-    margin-top:20px;
-    padding:15px;
-    background:white;
-    border-radius:10px;
-    font-size:22px;
-    font-weight:bold;
-    box-shadow:0 2px 5px rgba(0,0,0,.2);
+margin-top:20px;
+padding:15px;
+background:white;
+border-radius:10px;
+font-size:22px;
+font-weight:bold;
+box-shadow:0 2px 5px rgba(0,0,0,.2);
 }
 
 </style>
@@ -57,80 +59,85 @@ Esperando QR...
 
 <script>
 
-// URL DE TU APPS SCRIPT
-const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
+const WEBAPP =
+"https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
 let ultimoCodigo = "";
 let bloqueado = false;
 
-// Sonido
 function beep(){
-    const audio = new Audio(
-        "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
-    );
-    audio.play();
+
+const audio = new Audio(
+"https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
+);
+
+audio.play();
+
 }
 
-// Registrar asistencia
 function registrar(id){
 
-    document.getElementById("resultado").innerHTML =
-    "Registrando: " + id;
+document.getElementById("resultado").innerHTML =
+"Registrando: " + id;
 
-    fetch(WEBAPP + "?id=" + encodeURIComponent(id))
-    .then(response => response.text())
-    .then(data => {
+const iframe =
+document.createElement("iframe");
 
-        document.getElementById("resultado").innerHTML =
-        "✅ " + data;
+iframe.style.display = "none";
 
-        beep();
+iframe.src =
+WEBAPP +
+"?id=" +
+encodeURIComponent(id) +
+"&t=" +
+Date.now();
 
-    })
-    .catch(error => {
+document.body.appendChild(iframe);
 
-        document.getElementById("resultado").innerHTML =
-        "❌ Error: " + error;
+document.getElementById("resultado").innerHTML =
+"✅ Registrado: " + id;
 
-    });
+beep();
 
 }
 
-// Escaneo exitoso
 function onScanSuccess(decodedText){
 
-    if(bloqueado) return;
+if(bloqueado) return;
 
-    if(decodedText === ultimoCodigo) return;
+if(decodedText === ultimoCodigo) return;
 
-    ultimoCodigo = decodedText;
-    bloqueado = true;
+ultimoCodigo = decodedText;
+bloqueado = true;
 
-    registrar(decodedText);
+registrar(decodedText);
 
-    setTimeout(()=>{
-        bloqueado = false;
-        ultimoCodigo = "";
-    },3000);
+setTimeout(()=>{
+
+bloqueado = false;
+ultimoCodigo = "";
+
+},3000);
 
 }
 
-// Iniciar escáner
-const scanner = new Html5QrcodeScanner(
-    "reader",
-    {
-        fps:10,
-        qrbox:250
-    },
-    false
+const scanner =
+new Html5QrcodeScanner(
+"reader",
+{
+fps:10,
+qrbox:250
+},
+false
 );
 
 scanner.render(
-    onScanSuccess,
-    errorMessage => {}
+onScanSuccess,
+(error)=>{}
 );
 
 </script>
 
 </body>
+
 </html>
