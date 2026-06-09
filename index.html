@@ -65,23 +65,32 @@ const audio = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank
 audio.play();
 }
 
-// 📤 registrar asistencia
-function registrar(id){
+function registrar(id) {
+  id = id.toString().trim().replace(/\s+/g, "");
+  document.getElementById("resultado").innerHTML = "⏳ Registrando...";
+  document.getElementById("resultado").style.background = "#fff9c4";
 
-id = id.toString().trim().replace(/\s+/g,"");
-
-document.getElementById("resultado").innerHTML =
-"Registrando: " + id;
-
-// 🔥 método estable (sin CORS)
-const img = new Image();
-img.src = WEBAPP + "?id=" + encodeURIComponent(id);
-
-document.getElementById("resultado").innerHTML =
-"REGISTRADO: " + id;
-
-beep();
-
+  fetch(WEBAPP + "?id=" + encodeURIComponent(id))
+    .then(r => r.text())
+    .then(resp => {
+      resp = resp.trim();
+      const nombre = resp.split(":")[1] || id;
+      if (resp.startsWith("REGISTRADO:")) {
+        document.getElementById("resultado").innerHTML = "✅ " + nombre;
+        document.getElementById("resultado").style.background = "#c8e6c9";
+        beep();
+      } else if (resp.startsWith("YA_REGISTRADO:")) {
+        document.getElementById("resultado").innerHTML = "⚠️ Ya registrado hoy: " + nombre;
+        document.getElementById("resultado").style.background = "#fff3e0";
+      } else {
+        document.getElementById("resultado").innerHTML = "❌ No encontrado: " + id;
+        document.getElementById("resultado").style.background = "#ffcdd2";
+      }
+    })
+    .catch(() => {
+      document.getElementById("resultado").innerHTML = "❌ Error de conexión";
+      document.getElementById("resultado").style.background = "#ffcdd2";
+    });
 }
 
 // 📷 QR detectado
