@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asistencia QR</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body{
+font-family:Arial;
+text-align:center;
+padding:20px;
+}
+#reader{
+max-width:500px;
+margin:auto;
+}
+#resultado{
+margin-top:20px;
+font-size:22px;
+font-weight:bold;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>ASISTENCIA QR</h2>
+
+<div id="reader"></div>
+
+<div id="resultado">Esperando QR...</div>
+
+<script>
+
+const WEBAPP =
+https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec
+
+let bloqueado = false;
+
+function registrar(id){
+
+fetch(WEBAPP + "?id=" + encodeURIComponent(id))
+.then(r => r.text())
+.then(data => {
+
+document.getElementById("resultado").innerHTML = data;
+
+})
+.catch(err => {
+
+document.getElementById("resultado").innerHTML =
+"Error: " + err;
+
+});
+
+}
+
+function onScanSuccess(decodedText){
+
+if(bloqueado) return;
+
+bloqueado = true;
+
+registrar(decodedText);
+
+setTimeout(()=>{
+bloqueado=false;
+},2000);
+
+}
+
+const scanner = new Html5QrcodeScanner(
+"reader",
+{
+fps:10,
+qrbox:250
+}
+);
+
+scanner.render(onScanSuccess);
+
+</script>
+
+</body>
+</html>
