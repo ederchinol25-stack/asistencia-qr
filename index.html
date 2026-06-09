@@ -70,20 +70,13 @@ function registrar(id){
 
 id = id.trim();
 
+// mostramos estado
 document.getElementById("resultado").innerHTML =
 "Registrando: " + id;
 
-// 🔥 método 100% estable sin CORS
-const url = WEBAPP + "?id=" + encodeURIComponent(id);
-
-// usamos "image ping" (no falla nunca)
-const img = new Image();
-img.src = url;
-
-document.getElementById("resultado").innerHTML =
-"REGISTRADO: " + id;
-
-beep();
+// 🔥 redirección directa (NO falla nunca)
+window.location.href =
+WEBAPP + "?id=" + encodeURIComponent(id);
 
 }
 
