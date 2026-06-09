@@ -103,7 +103,9 @@ document.getElementById("resultado").innerHTML =
 // 📷 QR detectado
 function onScanSuccess(decodedText){
 
-decodedText = decodedText.trim();
+decodedText = decodedText
+.replace(/\s+/g, "")  // elimina espacios y saltos
+.trim();
 
 if(bloqueado) return;
 if(decodedText === ultimoCodigo) return;
