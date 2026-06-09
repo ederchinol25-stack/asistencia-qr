@@ -14,11 +14,7 @@
       padding: 20px;
       min-height: 100vh;
     }
-    h2 {
-      color: #1565c0;
-      margin-bottom: 16px;
-      font-size: 20px;
-    }
+    h2 { color: #1565c0; margin-bottom: 16px; font-size: 20px; }
     #reader {
       width: 100%;
       max-width: 400px;
@@ -80,6 +76,22 @@
       } catch(e) {}
     }
 
+    function beepError() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.frequency.value = 300;
+        o.type = "sine";
+        g.gain.setValueAtTime(1, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        o.start(ctx.currentTime);
+        o.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
+
     function mostrar(texto, color) {
       const r = document.getElementById("resultado");
       r.innerHTML = texto;
@@ -91,22 +103,41 @@
 
     function registrar(id) {
       id = id.toString().trim().replace(/\s+/g, "");
-      mostrar("⏳ Registrando: " + id, "#fff9c4");
+      mostrar("⏳ Registrando...", "#fff9c4");
 
-      const url = WEBAPP + "?id=" + encodeURIComponent(id);
+      // ✅ JSONP — lee la respuesta real sin CORS
+      const callbackName = "cb_" + Date.now();
+      const script = document.createElement("script");
+      const url = WEBAPP + "?id=" + encodeURIComponent(id) + "&callback=" + callbackName;
 
-      // ✅ no-cors: la petición SIEMPRE llega al servidor
-      fetch(url, { mode: "no-cors" })
-        .then(() => {
-          mostrar("✅ Registrado: " + id, "#c8e6c9");
+      const timeout = setTimeout(() => {
+        mostrar("⚠️ Sin respuesta, intenta de nuevo", "#ffecb3");
+        document.body.removeChild(script);
+        delete window[callbackName];
+      }, 8000);
+
+      window[callbackName] = function(data) {
+        clearTimeout(timeout);
+        document.body.removeChild(script);
+        delete window[callbackName];
+
+        if (data.estado === "REGISTRADO") {
+          mostrar("✅ " + data.nombre, "#c8e6c9");
           beep();
-        })
-        .catch(() => {
-          // Respaldo por si fetch falla
-          new Image().src = url;
-          mostrar("✅ Enviado: " + id, "#c8e6c9");
-          beep();
-        });
+        } else if (data.estado === "YA_REGISTRADO") {
+          mostrar("⚠️ Ya registrado: " + data.nombre, "#fff3e0");
+          beepError();
+        } else if (data.estado === "NO_ENCONTRADO") {
+          mostrar("❌ ID no encontrado: " + id, "#ffcdd2");
+          beepError();
+        } else {
+          mostrar("❌ Error: " + data.estado, "#ffcdd2");
+          beepError();
+        }
+      };
+
+      script.src = url;
+      document.body.appendChild(script);
     }
 
     function onScanSuccess(decodedText) {
@@ -119,7 +150,7 @@
       setTimeout(() => {
         bloqueado = false;
         ultimoCodigo = "";
-      }, 4000);
+      }, 5000);
     }
 
     document.addEventListener("DOMContentLoaded", function () {
