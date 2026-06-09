@@ -1,86 +1,134 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Asistencia QR</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Control de Asistencia QR</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
+
 body{
-font-family:Arial;
-text-align:center;
-padding:20px;
+    font-family: Arial, sans-serif;
+    text-align:center;
+    background:#f5f5f5;
+    margin:0;
+    padding:20px;
 }
+
+h2{
+    color:#1565c0;
+}
+
 #reader{
-max-width:500px;
-margin:auto;
+    width:100%;
+    max-width:500px;
+    margin:auto;
+    background:white;
+    padding:10px;
+    border-radius:10px;
 }
+
 #resultado{
-margin-top:20px;
-font-size:22px;
-font-weight:bold;
+    margin-top:20px;
+    padding:15px;
+    background:white;
+    border-radius:10px;
+    font-size:22px;
+    font-weight:bold;
+    box-shadow:0 2px 5px rgba(0,0,0,.2);
 }
+
 </style>
 
 </head>
 
 <body>
 
-<h2>ASISTENCIA QR</h2>
+<h2>CONTROL DE ASISTENCIA QR</h2>
 
 <div id="reader"></div>
 
-<div id="resultado">Esperando QR...</div>
+<div id="resultado">
+Esperando QR...
+</div>
 
 <script>
 
-const WEBAPP =
-https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec
+// URL DE TU APPS SCRIPT
+const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
+let ultimoCodigo = "";
 let bloqueado = false;
 
+// Sonido
+function beep(){
+    const audio = new Audio(
+        "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
+    );
+    audio.play();
+}
+
+// Registrar asistencia
 function registrar(id){
 
-fetch(WEBAPP + "?id=" + encodeURIComponent(id))
-.then(r => r.text())
-.then(data => {
+    document.getElementById("resultado").innerHTML =
+    "Registrando: " + id;
 
-document.getElementById("resultado").innerHTML = data;
+    fetch(WEBAPP + "?id=" + encodeURIComponent(id))
+    .then(response => response.text())
+    .then(data => {
 
-})
-.catch(err => {
+        document.getElementById("resultado").innerHTML =
+        "✅ " + data;
 
-document.getElementById("resultado").innerHTML =
-"Error: " + err;
+        beep();
 
-});
+    })
+    .catch(error => {
+
+        document.getElementById("resultado").innerHTML =
+        "❌ Error: " + error;
+
+    });
 
 }
 
+// Escaneo exitoso
 function onScanSuccess(decodedText){
 
-if(bloqueado) return;
+    if(bloqueado) return;
 
-bloqueado = true;
+    if(decodedText === ultimoCodigo) return;
 
-registrar(decodedText);
+    ultimoCodigo = decodedText;
+    bloqueado = true;
 
-setTimeout(()=>{
-bloqueado=false;
-},2000);
+    registrar(decodedText);
+
+    setTimeout(()=>{
+        bloqueado = false;
+        ultimoCodigo = "";
+    },3000);
 
 }
 
+// Iniciar escáner
 const scanner = new Html5QrcodeScanner(
-"reader",
-{
-fps:10,
-qrbox:250
-}
+    "reader",
+    {
+        fps:10,
+        qrbox:250
+    },
+    false
 );
 
-scanner.render(onScanSuccess);
+scanner.render(
+    onScanSuccess,
+    errorMessage => {}
+);
 
 </script>
 
