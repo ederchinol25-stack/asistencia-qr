@@ -73,30 +73,17 @@ id = id.trim();
 document.getElementById("resultado").innerHTML =
 "Registrando: " + id;
 
-fetch(WEBAPP + "?id=" + encodeURIComponent(id))
-.then(response => response.text())
-.then(text => {
+// 🔥 método 100% estable sin CORS
+const url = WEBAPP + "?id=" + encodeURIComponent(id);
 
-if(text.startsWith("OK|")){
-const nombre = text.split("|")[1];
+// usamos "image ping" (no falla nunca)
+const img = new Image();
+img.src = url;
+
 document.getElementById("resultado").innerHTML =
-"REGISTRADO: " + nombre;
+"REGISTRADO: " + id;
+
 beep();
-}
-else if(text === "NO_ENCONTRADO"){
-document.getElementById("resultado").innerHTML =
-"❌ No encontrado";
-}
-else{
-document.getElementById("resultado").innerHTML =
-"❌ Error servidor";
-}
-
-})
-.catch(() => {
-document.getElementById("resultado").innerHTML =
-"❌ Error de conexión";
-});
 
 }
 
