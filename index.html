@@ -2,47 +2,43 @@
 <html lang="es">
 
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Control de Asistencia QR</title>
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
 
 <style>
-
 body{
-font-family:Arial,sans-serif;
-text-align:center;
-background:#f5f5f5;
-margin:0;
-padding:20px;
+font-family: Arial;
+text-align: center;
+background: #f2f2f2;
+margin: 0;
+padding: 20px;
 }
 
 h2{
-color:#1565c0;
+color: #1565c0;
 }
 
 #reader{
-width:100%;
-max-width:500px;
-margin:auto;
-background:white;
-padding:10px;
-border-radius:10px;
+width: 100%;
+max-width: 400px;
+margin: auto;
+background: white;
+padding: 10px;
+border-radius: 10px;
 }
 
 #resultado{
-margin-top:20px;
-padding:15px;
-background:white;
-border-radius:10px;
-font-size:22px;
-font-weight:bold;
-box-shadow:0 2px 5px rgba(0,0,0,.2);
+margin-top: 20px;
+padding: 15px;
+background: white;
+border-radius: 10px;
+font-size: 20px;
+font-weight: bold;
+box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
-
 </style>
 
 </head>
@@ -53,60 +49,50 @@ box-shadow:0 2px 5px rgba(0,0,0,.2);
 
 <div id="reader"></div>
 
-<div id="resultado">
-Esperando QR...
-</div>
+<div id="resultado">Esperando QR...</div>
 
 <script>
 
-const WEBAPP =
-"https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
+const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
 let ultimoCodigo = "";
 let bloqueado = false;
 
+// 🔊 sonido
 function beep(){
-
-const audio = new Audio(
-"https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
-);
-
+const audio = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 audio.play();
-
 }
+
+// 📤 enviar a Apps Script
 function registrar(id){
+
+id = id.trim();
 
 document.getElementById("resultado").innerHTML =
 "Registrando: " + id;
 
-fetch(
-WEBAPP + "?id=" + encodeURIComponent(id),
-{
-method:"GET",
-mode:"no-cors"
-}
-)
-.then(() => {
+fetch(WEBAPP + "?id=" + encodeURIComponent(id))
+.then(r => r.text())
+.then(data => {
 
-document.getElementById("resultado").innerHTML =
-"✅ Registrado: " + id;
-
+document.getElementById("resultado").innerHTML = data;
 beep();
 
 })
-.catch(error => {
-
+.catch(() => {
 document.getElementById("resultado").innerHTML =
-"❌ " + error;
-
+"❌ Error de conexión";
 });
 
 }
 
+// 📷 cuando escanea QR
 function onScanSuccess(decodedText){
 
-if(bloqueado) return;
+decodedText = decodedText.trim();
 
+if(bloqueado) return;
 if(decodedText === ultimoCodigo) return;
 
 ultimoCodigo = decodedText;
@@ -115,31 +101,29 @@ bloqueado = true;
 registrar(decodedText);
 
 setTimeout(()=>{
-
 bloqueado = false;
 ultimoCodigo = "";
-
 },3000);
 
 }
 
-const scanner =
-new Html5QrcodeScanner(
+// 🚀 iniciar cámara
+window.onload = function () {
+
+const scanner = new Html5QrcodeScanner(
 "reader",
 {
-fps:10,
-qrbox:250
+fps: 10,
+qrbox: 250
 },
 false
 );
 
-scanner.render(
-onScanSuccess,
-(error)=>{}
-);
+scanner.render(onScanSuccess, (error)=>{});
+
+};
 
 </script>
 
 </body>
-
 </html>
