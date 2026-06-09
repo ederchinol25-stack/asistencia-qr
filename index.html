@@ -5,41 +5,40 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Control de Asistencia QR</title>
+<title>Asistencia QR</title>
 
-<!-- Librería QR estable -->
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <style>
 body{
 font-family: Arial;
-text-align: center;
-background: #f2f2f2;
-margin: 0;
-padding: 20px;
+text-align:center;
+background:#f2f2f2;
+margin:0;
+padding:20px;
 }
 
 h2{
-color: #1565c0;
+color:#1565c0;
 }
 
 #reader{
-width: 100%;
-max-width: 400px;
-margin: auto;
-background: white;
-padding: 10px;
-border-radius: 10px;
+width:100%;
+max-width:400px;
+margin:auto;
+background:white;
+padding:10px;
+border-radius:10px;
 }
 
 #resultado{
-margin-top: 20px;
-padding: 15px;
-background: white;
-border-radius: 10px;
-font-size: 20px;
-font-weight: bold;
-box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+margin-top:20px;
+padding:15px;
+background:white;
+border-radius:10px;
+font-size:20px;
+font-weight:bold;
+box-shadow:0 2px 5px rgba(0,0,0,0.2);
 }
 </style>
 
@@ -55,8 +54,6 @@ box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 
 <script>
 
-document.addEventListener("DOMContentLoaded", function () {
-
 const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
 let ultimoCodigo = "";
@@ -68,7 +65,7 @@ const audio = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank
 audio.play();
 }
 
-// 📤 enviar a Google Script
+// 📤 registrar asistencia
 function registrar(id){
 
 id = id.trim();
@@ -85,15 +82,13 @@ beep();
 
 })
 .catch(() => {
-
 document.getElementById("resultado").innerHTML =
 "❌ Error de conexión";
-
 });
 
 }
 
-// 📷 cuando escanea QR
+// 📷 QR detectado
 function onScanSuccess(decodedText){
 
 decodedText = decodedText.trim();
@@ -113,11 +108,8 @@ ultimoCodigo = "";
 
 }
 
-// 🚀 iniciar cámara QR
-if (typeof Html5QrcodeScanner === "undefined") {
-document.getElementById("resultado").innerHTML =
-"❌ Error: no cargó la cámara QR";
-} else {
+// 🚀 iniciar cámara
+document.addEventListener("DOMContentLoaded", function () {
 
 const scanner = new Html5QrcodeScanner(
 "reader",
@@ -129,8 +121,6 @@ false
 );
 
 scanner.render(onScanSuccess);
-
-}
 
 });
 
