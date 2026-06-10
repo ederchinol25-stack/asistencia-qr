@@ -34,11 +34,15 @@
       font-weight: bold;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       transition: background 0.3s;
-      min-height: 60px;
+      min-height: 70px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 4px;
     }
+    #resultado .nombre { font-size: 18px; }
+    #resultado .detalle { font-size: 14px; font-weight: normal; color: #555; }
     #hora {
       max-width: 400px;
       margin: 10px auto 0 auto;
@@ -57,44 +61,38 @@
   <script>
     const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
-    let ultimoCodigo = "";
-    let bloqueado = false;
+    // ✅ Bloqueo inmediato con Set de IDs en proceso
+    const enProceso = new Set();
 
-   function beep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.frequency.value = 880;
-    o.type = "sine";
-    g.gain.setValueAtTime(3, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-    o.start(ctx.currentTime);
-    o.stop(ctx.currentTime + 0.4);
-  } catch(e) {}
-}
+    function beep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880; o.type = "sine";
+        g.gain.setValueAtTime(3, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
+      } catch(e) {}
+    }
 
-function beepError() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.frequency.value = 300;
-    o.type = "sine";
-    g.gain.setValueAtTime(3, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-    o.start(ctx.currentTime);
-    o.stop(ctx.currentTime + 0.5);
-  } catch(e) {}
-}
+    function beepError() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 300; o.type = "sine";
+        g.gain.setValueAtTime(3, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
 
-    function mostrar(texto, color) {
+    function mostrar(icono, nombre, detalle, color) {
       const r = document.getElementById("resultado");
-      r.innerHTML = texto;
+      r.innerHTML = `<div class="nombre">${icono} ${nombre}</div><div class="detalle">${detalle}</div>`;
       r.style.background = color;
       const ahora = new Date();
       document.getElementById("hora").innerText =
@@ -103,50 +101,57 @@ function beepError() {
 
     function registrar(id) {
       id = id.toString().trim().replace(/\s+/g, "");
-      mostrar("⏳ Registrando...", "#fff9c4");
+
+      // ✅ Bloqueo inmediato antes de hacer fetch
+      if (enProceso.has(id)) return;
+      enProceso.add(id);
+
+      mostrar("⏳", "Registrando...", id, "#fff9c4");
 
       fetch(WEBAPP + "?id=" + encodeURIComponent(id))
         .then(r => r.text())
         .then(resp => {
           resp = resp.trim();
-          const nombre = resp.split(":")[1] || id;
-          if (resp.startsWith("REGISTRADO:")) {
-            mostrar("✅ " + nombre, "#c8e6c9");
+          const partes = resp.split(":");
+          const estado = partes[0];
+          const nombre = partes[1] || id;
+          const grado = partes[2] || "";
+          const seccion = partes[3] || "";
+          const detalle = grado ? `${grado} — Sección ${seccion}` : "";
+
+          if (estado === "REGISTRADO") {
+            mostrar("✅", nombre, detalle, "#c8e6c9");
             beep();
-          } else if (resp.startsWith("YA_REGISTRADO:")) {
-            mostrar("⚠️ Ya registrado: " + nombre, "#fff3e0");
+          } else if (estado === "YA_REGISTRADO") {
+            mostrar("⚠️", nombre, "Ya registrado hoy — " + detalle, "#fff3e0");
             beepError();
-          } else if (resp.startsWith("NO_ENCONTRADO")) {
-            mostrar("❌ No encontrado: " + id, "#ffcdd2");
+          } else if (estado === "NO_ENCONTRADO") {
+            mostrar("❌", "No encontrado", id, "#ffcdd2");
             beepError();
           } else {
-            mostrar("❌ Error", "#ffcdd2");
+            mostrar("❌", "Error", resp, "#ffcdd2");
             beepError();
           }
         })
         .catch(() => {
-          mostrar("❌ Error de conexión", "#ffcdd2");
+          mostrar("❌", "Error de conexión", "", "#ffcdd2");
           beepError();
+        })
+        .finally(() => {
+          // ✅ Liberar después de 5 segundos
+          setTimeout(() => enProceso.delete(id), 5000);
         });
     }
 
     function onScanSuccess(decodedText) {
       decodedText = decodedText.toString().trim().replace(/\s+/g, "");
-      if (bloqueado) return;
-      if (decodedText === ultimoCodigo) return;
-      ultimoCodigo = decodedText;
-      bloqueado = true;
       registrar(decodedText);
-      setTimeout(() => {
-        bloqueado = false;
-        ultimoCodigo = "";
-      }, 5000);
     }
 
     document.addEventListener("DOMContentLoaded", function () {
       const scanner = new Html5QrcodeScanner(
         "reader",
-        { fps: 10, qrbox: 250 },
+        { fps: 5, qrbox: 250 },
         false
       );
       scanner.render(onScanSuccess);
