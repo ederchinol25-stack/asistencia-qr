@@ -3,27 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard de Asistencia Escolar</title>
+<title>Dashboard Asistencia</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f6f9;margin:0;padding:20px}
 h1,h2{text-align:center;color:#1565c0}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}
-.card{background:#fff;padding:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);text-align:center}
-.card h2{margin:0;font-size:30px;color:#1565c0}
-.filtros{background:#fff;padding:15px;border-radius:12px;display:flex;flex-wrap:wrap;gap:10px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px}
+.card{background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);text-align:center}
+.card h2{margin:0;color:#1565c0}
+.filtros,.panel{background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:15px}
 select,input,button{padding:10px;border:1px solid #ccc;border-radius:6px}
-button{cursor:pointer;background:#1565c0;color:white}
-table{width:100%;border-collapse:collapse;background:white;margin-top:10px}
-th{background:#1565c0;color:white;padding:8px}
+button{background:#1565c0;color:white;cursor:pointer}
+table{width:100%;border-collapse:collapse}
+th{background:#1565c0;color:#fff;padding:8px}
 td{padding:8px;border-bottom:1px solid #ddd}
 .puntual{color:green;font-weight:bold}
-.tarde{color:red;font-weight:bold}
-.section{background:white;padding:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:20px}
+.tarde{color:#d97706;font-weight:bold}
+.ausente{color:red;font-weight:bold}
 </style>
 </head>
 <body>
-
 <h1>📊 Dashboard de Asistencia Escolar</h1>
 
 <div class="cards">
@@ -47,13 +46,14 @@ td{padding:8px;border-bottom:1px solid #ddd}
 </select>
 <select id="estado">
 <option value="">Todos</option>
-<option>PUNTUAL">Puntual</option>
-<option>TARDE">Tarde</option>
+<option value="PUNTUAL">🟢 Puntual</option>
+<option value="TARDE">🟡 Tarde</option>
+<option value="AUSENTE">❌ Ausente</option>
 </select>
 <button onclick="exportarExcel()">📥 Excel</button>
 </div>
 
-<div class="section">
+<div class="panel">
 <h2>📋 Registros</h2>
 <table id="tablaExport">
 <thead><tr><th>Fecha</th><th>Hora</th><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th><th>Estado</th></tr></thead>
@@ -61,7 +61,7 @@ td{padding:8px;border-bottom:1px solid #ddd}
 </table>
 </div>
 
-<div class="section">
+<div class="panel">
 <h2>❌ Ausentes de Hoy</h2>
 <table>
 <thead><tr><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th></tr></thead>
@@ -69,7 +69,7 @@ td{padding:8px;border-bottom:1px solid #ddd}
 </table>
 </div>
 
-<div class="section">
+<div class="panel">
 <h2>📊 Resumen por Grado y Sección</h2>
 <table>
 <thead><tr><th>Grado</th><th>Sección</th><th>Presentes</th><th>Ausentes</th><th>%</th></tr></thead>
@@ -82,9 +82,7 @@ const API="https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqP
 let registros=[];
 let alumnos=[];
 
-fetch(API)
-.then(r=>r.json())
-.then(data=>{
+fetch(API).then(r=>r.json()).then(data=>{
  registros=data.asistencia||[];
  alumnos=data.alumnos||[];
  actualizar();
@@ -92,7 +90,7 @@ fetch(API)
 });
 
 function estadoRegistro(r){
- const h=(r.hora||"").substring(11,19) || r.hora;
+ const h=(r.hora||"").substring(11,19);
  return h<"08:10:00"?"PUNTUAL":"TARDE";
 }
 
@@ -102,20 +100,56 @@ function actualizar(){
  const seccion=document.getElementById("seccion").value;
  const estado=document.getElementById("estado").value;
 
- let datos=registros.filter(r=>{
-   let ok=true;
-   if(grado && r.grado!==grado) ok=false;
-   if(seccion && r.seccion!==seccion) ok=false;
-   if(fecha){
-      const f=new Date(r.fecha).toISOString().split("T")[0];
-      if(f!==fecha) ok=false;
-   }
-   if(estado && estadoRegistro(r)!==estado) ok=false;
-   return ok;
- });
+ let datos=[];
+
+ if(estado==="AUSENTE"){
+   const hoy=new Date().toISOString().split("T")[0];
+   const presentes = new Set(
+ registros
+ .filter(r =>
+   new Date(r.fecha).toISOString().split("T")[0] === hoy
+ )
+ .map(r => String(r.id))
+);
+
+
+  datos = alumnos
+.filter(a => !presentes.has(String(a.id)))
+.filter(a => {
+
+   if(grado && a.grado !== grado) return false;
+
+   if(seccion && a.seccion !== seccion) return false;
+
+   return true;
+
+})
+.map(a => ({
+   fecha:hoy,
+   hora:"",
+   id:a.id,
+   nombre:a.nombre,
+   grado:a.grado,
+   seccion:a.seccion,
+   estado:"AUSENTE"
+}));
+
+ } else {
+   datos=registros.filter(r=>{
+      let ok=true;
+      if(grado && r.grado!==grado) ok=false;
+      if(seccion && r.seccion!==seccion) ok=false;
+      if(fecha){
+        const f=new Date(r.fecha).toISOString().split("T")[0];
+        if(f!==fecha) ok=false;
+      }
+      if(estado && estadoRegistro(r)!==estado) ok=false;
+      return ok;
+   });
+ }
 
  mostrarTabla(datos);
- estadisticas(datos);
+ estadisticas();
  mostrarAusentes();
  mostrarResumen();
 }
@@ -124,69 +158,64 @@ function mostrarTabla(datos){
  const t=document.getElementById("tabla");
  t.innerHTML="";
  datos.forEach(r=>{
-   const est=estadoRegistro(r);
+   const est=r.estado||estadoRegistro(r);
    t.innerHTML+=`<tr>
-   <td>${new Date(r.fecha).toLocaleDateString()}</td>
+   <td>${r.fecha?new Date(r.fecha).toLocaleDateString():""}</td>
    <td>${(r.hora||"").substring(11,19)}</td>
    <td>${r.id}</td>
    <td>${r.nombre}</td>
    <td>${r.grado}</td>
    <td>${r.seccion}</td>
-   <td class="${est==='PUNTUAL'?'puntual':'tarde'}">${est}</td>
+   <td class="${est==='PUNTUAL'?'puntual':est==='TARDE'?'tarde':'ausente'}">${est}</td>
    </tr>`;
  });
 }
 
-function estadisticas(datos){
- document.getElementById("total").innerText=datos.length;
+function estadisticas(){
+ const hoy = fecha || new Date().toISOString().split("T")[0];
+ const presentesSet=new Set(registros.filter(r=>new Date(r.fecha).toISOString().split("T")[0]===hoy).map(r=>r.id));
+ const presentes=presentesSet.size;
+
+ document.getElementById("total").innerText=registros.length;
  document.getElementById("alumnos").innerText=alumnos.length;
-
- const p=datos.filter(x=>estadoRegistro(x)==="PUNTUAL").length;
- document.getElementById("puntuales").innerText=p;
- document.getElementById("tardes").innerText=datos.length-p;
-
- const hoy=new Date().toISOString().split("T")[0];
- const presentes=new Set(registros.filter(r=>new Date(r.fecha).toISOString().split("T")[0]===hoy).map(r=>r.id)).size;
-
  document.getElementById("presentes").innerText=presentes;
  document.getElementById("ausentesTotal").innerText=alumnos.length-presentes;
+
+ const p=registros.filter(r=>estadoRegistro(r)==='PUNTUAL').length;
+ document.getElementById("puntuales").innerText=p;
+ document.getElementById("tardes").innerText=registros.length-p;
 }
 
 function mostrarAusentes(){
  const hoy=new Date().toISOString().split("T")[0];
  const presentes=new Set(registros.filter(r=>new Date(r.fecha).toISOString().split("T")[0]===hoy).map(r=>String(r.id)));
- const aus=alumnos.filter(a=>!presentes.has(String(a.id)));
+ const lista=alumnos.filter(a=>!presentes.has(String(a.id)));
  const t=document.getElementById("ausentes");
  t.innerHTML="";
- aus.forEach(a=>{
-   t.innerHTML+=`<tr><td>${a.id}</td><td>${a.nombre}</td><td>${a.grado}</td><td>${a.seccion}</td></tr>`;
- });
+ lista.forEach(a=>t.innerHTML+=`<tr><td>${a.id}</td><td>${a.nombre}</td><td>${a.grado}</td><td>${a.seccion}</td></tr>`);
 }
 
 function mostrarResumen(){
  const hoy=new Date().toISOString().split("T")[0];
  const res={};
-
  alumnos.forEach(a=>{
-  const k=a.grado+"-"+a.seccion;
-  if(!res[k]) res[k]={total:0,p:new Set()};
-  res[k].total++;
+   const k=a.grado+'-'+a.seccion;
+   if(!res[k]) res[k]={total:0,p:new Set()};
+   res[k].total++;
  });
-
  registros.forEach(r=>{
-  if(new Date(r.fecha).toISOString().split("T")[0]!==hoy) return;
-  const k=r.grado+"-"+r.seccion;
-  if(res[k]) res[k].p.add(r.id);
+   if(new Date(r.fecha).toISOString().split("T")[0]!==hoy) return;
+   const k=r.grado+'-'+r.seccion;
+   if(res[k]) res[k].p.add(r.id);
  });
-
  const t=document.getElementById("resumen");
- t.innerHTML="";
+ t.innerHTML='';
  Object.keys(res).sort().forEach(k=>{
    const x=res[k];
    const pre=x.p.size;
    const aus=x.total-pre;
    const por=((pre/x.total)*100).toFixed(1);
-   const p=k.split("-");
+   const p=k.split('-');
    t.innerHTML+=`<tr><td>${p[0]}</td><td>${p[1]}</td><td>${pre}</td><td>${aus}</td><td>${por}%</td></tr>`;
  });
 }
