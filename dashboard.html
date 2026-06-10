@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Asistencia</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+background:#f4f6f9;
+margin:0;
+padding:20px;
+}
+
+h1{
+text-align:center;
+color:#1565c0;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+margin-bottom:20px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+text-align:center;
+}
+
+.card h2{
+margin:0;
+font-size:32px;
+color:#1565c0;
+}
+
+.card p{
+margin:5px 0 0;
+font-size:14px;
+}
+
+.filtros{
+background:white;
+padding:15px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+margin-bottom:20px;
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+}
+
+select,input{
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+th{
+background:#1565c0;
+color:white;
+padding:10px;
+}
+
+td{
+padding:8px;
+border-bottom:1px solid #ddd;
+}
+
+.puntual{
+color:green;
+font-weight:bold;
+}
+
+.tarde{
+color:red;
+font-weight:bold;
+}
+
+canvas{
+background:white;
+margin-top:20px;
+padding:15px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+</style>
+
+</head>
+<body>
+
+<h1>📊 Dashboard de Asistencia</h1>
+
+<div class="cards">
+<div class="card">
+<h2 id="total">0</h2>
+<p>Total Registros</p>
+</div>
+
+<div class="card">
+<h2 id="puntuales">0</h2>
+<p>Puntuales</p>
+</div>
+
+<div class="card">
+<h2 id="tardes">0</h2>
+<p>Tardes</p>
+</div>
+
+<div class="card">
+<h2 id="alumnos">0</h2>
+<p>Alumnos Únicos</p>
+</div>
+</div>
+
+<div class="filtros">
+
+<input type="date" id="fecha">
+
+<select id="grado">
+<option value="">Todos los grados</option>
+<option>1°</option>
+<option>2°</option>
+<option>3°</option>
+<option>4°</option>
+<option>5°</option>
+</select>
+
+<select id="seccion">
+<option value="">Todas las secciones</option>
+<option>A</option>
+<option>B</option>
+<option>C</option>
+</select>
+
+<select id="estado">
+<option value="">Todos</option>
+<option>PUNTUAL</option>
+<option>TARDE</option>
+</select>
+
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Fecha</th>
+<th>Hora</th>
+<th>ID</th>
+<th>Nombre</th>
+<th>Grado</th>
+<th>Sección</th>
+<th>Estado</th>
+</tr>
+</thead>
+
+<tbody id="tabla">
+</tbody>
+
+</table>
+
+<canvas id="grafico"></canvas>
+
+<script>
+
+const API =
+"https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
+
+let registros = [];
+
+fetch(API)
+.then(r=>r.json())
+.then(data=>{
+
+registros = data;
+
+actualizar();
+
+document
+.querySelectorAll("select,input")
+.forEach(x=>x.addEventListener("change",actualizar));
+
+});
+
+function actualizar(){
+
+const fecha =
+document.getElementById("fecha").value;
+
+const grado =
+document.getElementById("grado").value;
+
+const seccion =
+document.getElementById("seccion").value;
+
+const estado =
+document.getElementById("estado").value;
+
+let datos = registros.filter(r=>{
+
+let ok=true;
+
+if(grado && r.grado!==grado) ok=false;
+
+if(seccion && r.seccion!==seccion) ok=false;
+
+if(fecha){
+
+const f =
+new Date(r.fecha)
+.toISOString()
+.split("T")[0];
+
+if(f!==fecha) ok=false;
+
+}
+
+const puntual =
+r.hora < "08:10:00"
+? "PUNTUAL"
+: "TARDE";
+
+if(estado && puntual!==estado)
+ok=false;
+
+return ok;
+
+});
+
+mostrarTabla(datos);
+estadisticas(datos);
+
+}
+
+function mostrarTabla(datos){
+
+const tabla =
+document.getElementById("tabla");
+
+tabla.innerHTML="";
+
+datos.forEach(r=>{
+
+const estado =
+r.hora < "08:10:00"
+? "PUNTUAL"
+: "TARDE";
+
+tabla.innerHTML += `
+<tr>
+<td>${new Date(r.fecha).toLocaleDateString()}</td>
+<td>${r.hora}</td>
+<td>${r.id}</td>
+<td>${r.nombre}</td>
+<td>${r.grado}</td>
+<td>${r.seccion}</td>
+<td class="${estado==='PUNTUAL'?'puntual':'tarde'}">
+${estado}
+</td>
+</tr>
+`;
+
+});
+
+}
+
+function estadisticas(datos){
+
+document.getElementById("total")
+.innerText = datos.length;
+
+const puntuales =
+datos.filter(x=>x.hora<"08:10:00").length;
+
+const tardes =
+datos.length-puntuales;
+
+document.getElementById("puntuales")
+.innerText = puntuales;
+
+document.getElementById("tardes")
+.innerText = tardes;
+
+document.getElementById("alumnos")
+.innerText =
+new Set(datos.map(x=>x.id)).size;
+
+dibujar(puntuales,tardes);
+
+}
+
+let chart;
+
+function dibujar(p,t){
+
+if(chart) chart.destroy();
+
+chart = new Chart(
+document.getElementById("grafico"),
+{
+type:"pie",
+data:{
+labels:["Puntuales","Tardes"],
+datasets:[{
+data:[p,t]
+}]
+}
+}
+);
+
+}
+
+</script>
+
+</body>
+</html>
