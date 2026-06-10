@@ -1,332 +1,200 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard de Asistencia</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<title>Dashboard de Asistencia Escolar</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
-body{
-font-family:Arial,sans-serif;
-background:#f4f6f9;
-margin:0;
-padding:20px;
-}
-
-h1{
-text-align:center;
-color:#1565c0;
-}
-
-.cards{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-gap:15px;
-margin-bottom:20px;
-}
-
-.card{
-background:white;
-padding:20px;
-border-radius:12px;
-box-shadow:0 2px 8px rgba(0,0,0,.1);
-text-align:center;
-}
-
-.card h2{
-margin:0;
-font-size:32px;
-color:#1565c0;
-}
-
-.card p{
-margin:5px 0 0;
-font-size:14px;
-}
-
-.filtros{
-background:white;
-padding:15px;
-border-radius:12px;
-box-shadow:0 2px 8px rgba(0,0,0,.1);
-margin-bottom:20px;
-display:flex;
-flex-wrap:wrap;
-gap:10px;
-}
-
-select,input{
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-box-shadow:0 2px 8px rgba(0,0,0,.1);
-}
-
-th{
-background:#1565c0;
-color:white;
-padding:10px;
-}
-
-td{
-padding:8px;
-border-bottom:1px solid #ddd;
-}
-
-.puntual{
-color:green;
-font-weight:bold;
-}
-
-.tarde{
-color:red;
-font-weight:bold;
-}
-
-canvas{
-background:white;
-margin-top:20px;
-padding:15px;
-border-radius:12px;
-box-shadow:0 2px 8px rgba(0,0,0,.1);
-}
+body{font-family:Arial,sans-serif;background:#f4f6f9;margin:0;padding:20px}
+h1,h2{text-align:center;color:#1565c0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}
+.card{background:#fff;padding:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);text-align:center}
+.card h2{margin:0;font-size:30px;color:#1565c0}
+.filtros{background:#fff;padding:15px;border-radius:12px;display:flex;flex-wrap:wrap;gap:10px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+select,input,button{padding:10px;border:1px solid #ccc;border-radius:6px}
+button{cursor:pointer;background:#1565c0;color:white}
+table{width:100%;border-collapse:collapse;background:white;margin-top:10px}
+th{background:#1565c0;color:white;padding:8px}
+td{padding:8px;border-bottom:1px solid #ddd}
+.puntual{color:green;font-weight:bold}
+.tarde{color:red;font-weight:bold}
+.section{background:white;padding:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:20px}
 </style>
-
 </head>
 <body>
 
-<h1>📊 Dashboard de Asistencia</h1>
+<h1>📊 Dashboard de Asistencia Escolar</h1>
 
 <div class="cards">
-<div class="card">
-<h2 id="total">0</h2>
-<p>Total Registros</p>
-</div>
-
-<div class="card">
-<h2 id="puntuales">0</h2>
-<p>Puntuales</p>
-</div>
-
-<div class="card">
-<h2 id="tardes">0</h2>
-<p>Tardes</p>
-</div>
-
-<div class="card">
-<h2 id="alumnos">0</h2>
-<p>Alumnos Únicos</p>
-</div>
+<div class="card"><h2 id="total">0</h2><p>Registros</p></div>
+<div class="card"><h2 id="presentes">0</h2><p>Presentes Hoy</p></div>
+<div class="card"><h2 id="ausentesTotal">0</h2><p>Ausentes Hoy</p></div>
+<div class="card"><h2 id="puntuales">0</h2><p>Puntuales</p></div>
+<div class="card"><h2 id="tardes">0</h2><p>Tardes</p></div>
+<div class="card"><h2 id="alumnos">0</h2><p>Total Alumnos</p></div>
 </div>
 
 <div class="filtros">
-
 <input type="date" id="fecha">
-
 <select id="grado">
 <option value="">Todos los grados</option>
-<option>1°</option>
-<option>2°</option>
-<option>3°</option>
-<option>4°</option>
-<option>5°</option>
+<option>1°</option><option>2°</option><option>3°</option><option>4°</option><option>5°</option>
 </select>
-
 <select id="seccion">
 <option value="">Todas las secciones</option>
-<option>A</option>
-<option>B</option>
-<option>C</option>
+<option>A</option><option>B</option><option>C</option>
 </select>
-
 <select id="estado">
 <option value="">Todos</option>
-<option>PUNTUAL</option>
-<option>TARDE</option>
+<option>PUNTUAL">Puntual</option>
+<option>TARDE">Tarde</option>
 </select>
-
+<button onclick="exportarExcel()">📥 Excel</button>
 </div>
 
-<table>
-
-<thead>
-<tr>
-<th>Fecha</th>
-<th>Hora</th>
-<th>ID</th>
-<th>Nombre</th>
-<th>Grado</th>
-<th>Sección</th>
-<th>Estado</th>
-</tr>
-</thead>
-
-<tbody id="tabla">
-</tbody>
-
+<div class="section">
+<h2>📋 Registros</h2>
+<table id="tablaExport">
+<thead><tr><th>Fecha</th><th>Hora</th><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th><th>Estado</th></tr></thead>
+<tbody id="tabla"></tbody>
 </table>
+</div>
 
-<canvas id="grafico"></canvas>
+<div class="section">
+<h2>❌ Ausentes de Hoy</h2>
+<table>
+<thead><tr><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th></tr></thead>
+<tbody id="ausentes"></tbody>
+</table>
+</div>
+
+<div class="section">
+<h2>📊 Resumen por Grado y Sección</h2>
+<table>
+<thead><tr><th>Grado</th><th>Sección</th><th>Presentes</th><th>Ausentes</th><th>%</th></tr></thead>
+<tbody id="resumen"></tbody>
+</table>
+</div>
 
 <script>
-
-const API =
-"https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
-
-let registros = [];
+const API="https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
+let registros=[];
+let alumnos=[];
 
 fetch(API)
 .then(r=>r.json())
 .then(data=>{
-
-registros = data;
-
-actualizar();
-
-document
-.querySelectorAll("select,input")
-.forEach(x=>x.addEventListener("change",actualizar));
-
+ registros=data.asistencia||[];
+ alumnos=data.alumnos||[];
+ actualizar();
+ document.querySelectorAll("select,input").forEach(x=>x.addEventListener("change",actualizar));
 });
 
-function actualizar(){
-
-const fecha =
-document.getElementById("fecha").value;
-
-const grado =
-document.getElementById("grado").value;
-
-const seccion =
-document.getElementById("seccion").value;
-
-const estado =
-document.getElementById("estado").value;
-
-let datos = registros.filter(r=>{
-
-let ok=true;
-
-if(grado && r.grado!==grado) ok=false;
-
-if(seccion && r.seccion!==seccion) ok=false;
-
-if(fecha){
-
-const f =
-new Date(r.fecha)
-.toISOString()
-.split("T")[0];
-
-if(f!==fecha) ok=false;
-
+function estadoRegistro(r){
+ const h=(r.hora||"").substring(11,19) || r.hora;
+ return h<"08:10:00"?"PUNTUAL":"TARDE";
 }
 
-const puntual =
-r.hora < "08:10:00"
-? "PUNTUAL"
-: "TARDE";
+function actualizar(){
+ const fecha=document.getElementById("fecha").value;
+ const grado=document.getElementById("grado").value;
+ const seccion=document.getElementById("seccion").value;
+ const estado=document.getElementById("estado").value;
 
-if(estado && puntual!==estado)
-ok=false;
+ let datos=registros.filter(r=>{
+   let ok=true;
+   if(grado && r.grado!==grado) ok=false;
+   if(seccion && r.seccion!==seccion) ok=false;
+   if(fecha){
+      const f=new Date(r.fecha).toISOString().split("T")[0];
+      if(f!==fecha) ok=false;
+   }
+   if(estado && estadoRegistro(r)!==estado) ok=false;
+   return ok;
+ });
 
-return ok;
-
-});
-
-mostrarTabla(datos);
-estadisticas(datos);
-
+ mostrarTabla(datos);
+ estadisticas(datos);
+ mostrarAusentes();
+ mostrarResumen();
 }
 
 function mostrarTabla(datos){
-
-const tabla =
-document.getElementById("tabla");
-
-tabla.innerHTML="";
-
-datos.forEach(r=>{
-
-const estado =
-r.hora < "08:10:00"
-? "PUNTUAL"
-: "TARDE";
-
-tabla.innerHTML += `
-<tr>
-<td>${new Date(r.fecha).toLocaleDateString()}</td>
-<td>${r.hora}</td>
-<td>${r.id}</td>
-<td>${r.nombre}</td>
-<td>${r.grado}</td>
-<td>${r.seccion}</td>
-<td class="${estado==='PUNTUAL'?'puntual':'tarde'}">
-${estado}
-</td>
-</tr>
-`;
-
-});
-
+ const t=document.getElementById("tabla");
+ t.innerHTML="";
+ datos.forEach(r=>{
+   const est=estadoRegistro(r);
+   t.innerHTML+=`<tr>
+   <td>${new Date(r.fecha).toLocaleDateString()}</td>
+   <td>${(r.hora||"").substring(11,19)}</td>
+   <td>${r.id}</td>
+   <td>${r.nombre}</td>
+   <td>${r.grado}</td>
+   <td>${r.seccion}</td>
+   <td class="${est==='PUNTUAL'?'puntual':'tarde'}">${est}</td>
+   </tr>`;
+ });
 }
 
 function estadisticas(datos){
+ document.getElementById("total").innerText=datos.length;
+ document.getElementById("alumnos").innerText=alumnos.length;
 
-document.getElementById("total")
-.innerText = datos.length;
+ const p=datos.filter(x=>estadoRegistro(x)==="PUNTUAL").length;
+ document.getElementById("puntuales").innerText=p;
+ document.getElementById("tardes").innerText=datos.length-p;
 
-const puntuales =
-datos.filter(x=>x.hora<"08:10:00").length;
+ const hoy=new Date().toISOString().split("T")[0];
+ const presentes=new Set(registros.filter(r=>new Date(r.fecha).toISOString().split("T")[0]===hoy).map(r=>r.id)).size;
 
-const tardes =
-datos.length-puntuales;
-
-document.getElementById("puntuales")
-.innerText = puntuales;
-
-document.getElementById("tardes")
-.innerText = tardes;
-
-document.getElementById("alumnos")
-.innerText =
-new Set(datos.map(x=>x.id)).size;
-
-dibujar(puntuales,tardes);
-
+ document.getElementById("presentes").innerText=presentes;
+ document.getElementById("ausentesTotal").innerText=alumnos.length-presentes;
 }
 
-let chart;
-
-function dibujar(p,t){
-
-if(chart) chart.destroy();
-
-chart = new Chart(
-document.getElementById("grafico"),
-{
-type:"pie",
-data:{
-labels:["Puntuales","Tardes"],
-datasets:[{
-data:[p,t]
-}]
-}
-}
-);
-
+function mostrarAusentes(){
+ const hoy=new Date().toISOString().split("T")[0];
+ const presentes=new Set(registros.filter(r=>new Date(r.fecha).toISOString().split("T")[0]===hoy).map(r=>String(r.id)));
+ const aus=alumnos.filter(a=>!presentes.has(String(a.id)));
+ const t=document.getElementById("ausentes");
+ t.innerHTML="";
+ aus.forEach(a=>{
+   t.innerHTML+=`<tr><td>${a.id}</td><td>${a.nombre}</td><td>${a.grado}</td><td>${a.seccion}</td></tr>`;
+ });
 }
 
+function mostrarResumen(){
+ const hoy=new Date().toISOString().split("T")[0];
+ const res={};
+
+ alumnos.forEach(a=>{
+  const k=a.grado+"-"+a.seccion;
+  if(!res[k]) res[k]={total:0,p:new Set()};
+  res[k].total++;
+ });
+
+ registros.forEach(r=>{
+  if(new Date(r.fecha).toISOString().split("T")[0]!==hoy) return;
+  const k=r.grado+"-"+r.seccion;
+  if(res[k]) res[k].p.add(r.id);
+ });
+
+ const t=document.getElementById("resumen");
+ t.innerHTML="";
+ Object.keys(res).sort().forEach(k=>{
+   const x=res[k];
+   const pre=x.p.size;
+   const aus=x.total-pre;
+   const por=((pre/x.total)*100).toFixed(1);
+   const p=k.split("-");
+   t.innerHTML+=`<tr><td>${p[0]}</td><td>${p[1]}</td><td>${pre}</td><td>${aus}</td><td>${por}%</td></tr>`;
+ });
+}
+
+function exportarExcel(){
+ const wb=XLSX.utils.table_to_book(document.getElementById("tablaExport"));
+ XLSX.writeFile(wb,"Reporte_Asistencia.xlsx");
+}
 </script>
-
 </body>
 </html>
