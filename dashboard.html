@@ -3,566 +3,360 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard de Asistencia Escolar QR</title>
-  
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+  <title>Dashboard Asistencia Escolar</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-    :root {
-      --primary: #1e88e5;
-      --primary-dark: #1565c0;
-      --success: #2e7d32;
-      --warning: #f57c00;
-      --danger: #c62828;
-      --bg: #f4f6f9;
-      --card-bg: #ffffff;
-      --text: #2c3e50;
-      --border: #e0e0e0;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 20px; }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 25px;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-
-    .header h1 { font-size: 1.6rem; color: #1a252f; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-
-    /* Tarjetas de Métricas */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      margin-bottom: 25px;
-    }
-
-    .kpi-card {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      border-left: 5px solid var(--primary);
-    }
-    .kpi-card.success { border-left-color: var(--success); }
-    .kpi-card.warning { border-left-color: var(--warning); }
-    .kpi-card.danger { border-left-color: var(--danger); }
-
-    .kpi-title { font-size: 0.85rem; color: #7f8c8d; text-transform: uppercase; font-weight: 600; }
-    .kpi-value { font-size: 1.8rem; font-weight: 700; margin-top: 8px; }
-
-    /* Controles y Filtros */
-    .controls-card {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      margin-bottom: 25px;
-    }
-
-    .filters-row {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
-    .filter-group label { font-size: 0.85rem; font-weight: 600; color: #555; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+    h1, h2 { text-align: center; color: #1565c0; margin-bottom: 15px; }
     
-    input, select, button {
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      outline: none;
-    }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
+    .card { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center; }
+    .card h2 { margin: 5px 0 0 0; color: #1565c0; font-size: 28px; }
+    .card p { margin: 0; color: #666; font-size: 13px; font-weight: bold; }
 
-    input:focus, select:focus { border-color: var(--primary); }
+    .filtros, .panel { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); margin-top: 15px; }
+    .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+    
+    select, input, button { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    button { background: #1565c0; color: white; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0d47a1; }
 
-    /* Botones de Exportación Excel */
-    .export-buttons {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid var(--border);
-    }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th { background: #1565c0; color: #fff; padding: 10px; text-align: left; }
+    td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
 
-    .btn {
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-      color: white;
-    }
-
-    .btn-excel-primary { background-color: var(--success); }
-    .btn-excel-primary:hover { background-color: #1b5e20; }
-
-    .btn-excel-secondary { background-color: var(--primary); }
-    .btn-excel-secondary:hover { background-color: var(--primary-dark); }
-
-    .btn-excel-warning { background-color: var(--warning); }
-    .btn-excel-warning:hover { background-color: #e65100; }
-
-    .btn-qr { background-color: #6a1b9a; }
-    .btn-qr:hover { background-color: #4a148c; }
-
-    /* Secciones de Tablas */
-    .section-title { font-size: 1.2rem; font-weight: 700; margin: 25px 0 15px 0; color: #333; display: flex; align-items: center; gap: 8px; }
-
-    .table-container {
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      overflow-x: auto;
-      margin-bottom: 25px;
-    }
-
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    th { background-color: #f8f9fa; font-weight: 600; color: #495057; }
-    tr:hover { background-color: #f1f5f9; }
-
-    .badge {
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    .badge-presente { background-color: #e8f5e9; color: var(--success); }
-    .badge-ausente { background-color: #ffebee; color: var(--danger); }
-
-    /* Modal Escáner QR */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 450px;
-      width: 90%;
-      text-align: center;
-    }
-    #reader { width: 100%; margin-top: 15px; }
+    .puntual { color: #2e7d32; font-weight: bold; }
+    .tarde { color: #d97706; font-weight: bold; }
+    .ausente { color: #c62828; font-weight: bold; }
+    
+    #loading { text-align: center; font-weight: bold; color: #1565c0; padding: 20px; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1><i class="fa-solid fa-qrcode"></i> Dashboard de Asistencia QR</h1>
-    <button class="btn btn-qr" onclick="abrirScanner()">
-      <i class="fa-solid fa-camera"></i> Escanear Código QR
-    </button>
+  <h1>📊 Dashboard de Asistencia Escolar</h1>
+
+  <div id="loading">⏳ Cargando datos desde Google Sheets...</div>
+
+  <div class="cards">
+    <div class="card"><h2 id="alumnos">0</h2><p>Total Alumnos</p></div>
+    <div class="card"><h2 id="presentes">0</h2><p>Presentes</p></div>
+    <div class="card"><h2 id="ausentesTotal">0</h2><p>Ausentes</p></div>
+    <div class="card"><h2 id="puntuales">0</h2><p>Puntuales</p></div>
+    <div class="card"><h2 id="tardes">0</h2><p>Tardes</p></div>
+    <div class="card"><h2 id="total">0</h2><p>Registros en Fecha</p></div>
   </div>
 
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-title">Total Matriculados</div>
-      <div class="kpi-value" id="kpiTotal">0</div>
-    </div>
-    <div class="kpi-card success">
-      <div class="kpi-title">Asistieron Hoy</div>
-      <div class="kpi-value" id="kpiAsistieron">0</div>
-    </div>
-    <div class="kpi-card danger">
-      <div class="kpi-title">Ausentes</div>
-      <div class="kpi-value" id="kpiAusentes">0</div>
-    </div>
-    <div class="kpi-card warning">
-      <div class="kpi-title">% Asistencia</div>
-      <div class="kpi-value" id="kpiPorcentaje">0%</div>
-    </div>
+  <div class="filtros">
+    <input type="date" id="fecha">
+    <select id="grado">
+      <option value="">Todos los grados</option>
+      <option>1°</option><option>2°</option><option>3°</option><option>4°</option><option>5°</option>
+    </select>
+    <select id="seccion">
+      <option value="">Todas las secciones</option>
+      <option>A</option><option>B</option><option>C</option>
+    </select>
+    <select id="estado">
+      <option value="">Todos los estados</option>
+      <option value="PUNTUAL">🟢 Puntual</option>
+      <option value="TARDE">🟡 Tarde</option>
+      <option value="AUSENTE">❌ Ausente</option>
+    </select>
+    <button onclick="exportarExcel()">📥 Exportar Excel</button>
   </div>
 
-  <div class="controls-card">
-    <div class="filters-row">
-      <div class="filter-group">
-        <label for="filtroFecha">Fecha de Consulta:</label>
-        <input type="date" id="filtroFecha" onchange="aplicarFiltros()">
-      </div>
-      <div class="filter-group">
-        <label for="filtroGrado">Grado:</label>
-        <select id="filtroGrado" onchange="aplicarFiltros()">
-          <option value="">Todos los Grados</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="filtroSeccion">Sección:</label>
-        <select id="filtroSeccion" onchange="aplicarFiltros()">
-          <option value="">Todas las Secciones</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="filtroBusqueda">Buscar Alumno / DNI:</label>
-        <input type="text" id="filtroBusqueda" placeholder="Nombre o ID..." oninput="aplicarFiltros()">
-      </div>
-    </div>
-
-    <div class="export-buttons">
-      <button class="btn btn-excel-primary" onclick="exportarExcelCompleto()">
-        <i class="fa-solid fa-file-excel"></i> Exportar Reporte Completo (.xlsx)
-      </button>
-      <button class="btn btn-excel-secondary" onclick="exportarExcelResumen()">
-        <i class="fa-solid fa-chart-pie"></i> Exportar Resumen
-      </button>
-      <button class="btn btn-excel-secondary" onclick="exportarExcelDetallado()">
-        <i class="fa-solid fa-list-check"></i> Exportar Detalle
-      </button>
-      <button class="btn btn-excel-warning" onclick="exportarExcelAusentes()">
-        <i class="fa-solid fa-user-xmark"></i> Exportar Ausentes
-      </button>
-    </div>
-  </div>
-
-  <div class="section-title"><i class="fa-solid fa-chart-column"></i> Resumen de Asistencia por Sección</div>
-  <div class="table-container">
-    <table id="tablaResumen">
+  <div class="panel">
+    <h2>📋 Registros de Asistencia</h2>
+    <table id="tablaExport">
       <thead>
-        <tr>
-          <th>Grado</th>
-          <th>Sección</th>
-          <th>Total Alumnos</th>
-          <th>Asistieron</th>
-          <th>Ausentes</th>
-          <th>% Asistencia</th>
-        </tr>
+        <tr><th>Fecha</th><th>Hora</th><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th><th>Estado</th></tr>
       </thead>
-      <tbody></tbody>
+      <tbody id="tabla"></tbody>
     </table>
   </div>
 
-  <div class="section-title"><i class="fa-solid fa-id-card"></i> Registro Detallado de Asistencia</div>
-  <div class="table-container">
-    <table id="tablaDetalle">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Hora</th>
-          <th>DNI / ID</th>
-          <th>Alumno</th>
-          <th>Grado</th>
-          <th>Sección</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
+  <div class="panel">
+    <h2 id="tituloAusentes">❌ Alumnos Ausentes</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th></tr></thead>
+      <tbody id="ausentes"></tbody>
     </table>
   </div>
 
-  <div class="section-title"><i class="fa-solid fa-user-slash"></i> Lista de Alumnos Ausentes</div>
-  <div class="table-container">
-    <table id="tablaAusentes">
-      <thead>
-        <tr>
-          <th>DNI / ID</th>
-          <th>Alumno</th>
-          <th>Grado</th>
-          <th>Sección</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
+  <div class="panel">
+    <h2 id="tituloResumen">📊 Resumen por Grado y Sección</h2>
+    <table>
+      <thead><tr><th>Grado</th><th>Sección</th><th>Total Alumnos</th><th>Presentes</th><th>Ausentes</th><th>% Asistencia</th></tr></thead>
+      <tbody id="resumen"></tbody>
     </table>
-  </div>
-
-  <div id="modalScanner" class="modal">
-    <div class="modal-content">
-      <h3>Escanear Código QR</h3>
-      <div id="reader"></div>
-      <div id="scannedMsg" style="margin-top:10px; font-weight:bold;"></div>
-      <button class="btn btn-excel-warning" style="margin-top: 15px;" onclick="cerrarScanner()">Cerrar Cámara</button>
-    </div>
   </div>
 
   <script>
-    // Variables Globales
-    let globalData = { registros: [], alumnos: [] };
-    let html5QrcodeScanner = null;
+    const API = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
+    let registros = [];
+    let alumnos = [];
 
-    // Inicialización al cargar la página
-    window.onload = function() {
-      // Establecer fecha por defecto a hoy
-      document.getElementById('filtroFecha').value = new Date().toISOString().split('T')[0];
-      cargarDatos();
-    };
-
-    // Consultar backend Apps Script
-    function cargarDatos() {
-      google.script.run
-        .withSuccessHandler(function(response) {
-          globalData = response;
-          poblarSelects();
-          aplicarFiltros();
-        })
-        .withFailureHandler(function(err) {
-          alert("Error cargando los datos: " + err);
-        })
-        .obtenerDatosAsistencia();
-    }
-
-    // Llenar selectores de Grado y Sección dinámicamente
-    function poblarSelects() {
-      const grados = [...new Set(globalData.alumnos.map(a => a.grado))].sort();
-      const secciones = [...new Set(globalData.alumnos.map(a => a.seccion))].sort();
-
-      const selectGrado = document.getElementById('filtroGrado');
-      const selectSeccion = document.getElementById('filtroSeccion');
-
-      selectGrado.innerHTML = '<option value="">Todos los Grados</option>';
-      selectSeccion.innerHTML = '<option value="">Todas las Secciones</option>';
-
-      grados.forEach(g => selectGrado.innerHTML += `<option value="${g}">${g}</option>`);
-      secciones.forEach(s => selectSeccion.innerHTML += `<option value="${s}">${s}</option>`);
-    }
-
-    // Filtrar y renderizar tablas y estadísticas
-    function aplicarFiltros() {
-      const fecha = document.getElementById('filtroFecha').value;
-      const grado = document.getElementById('filtroGrado').value;
-      const seccion = document.getElementById('filtroSeccion').value;
-      const busqueda = document.getElementById('filtroBusqueda').value.toLowerCase().trim();
-
-      // Filter alumnos
-      let alumnosFiltrados = globalData.alumnos.filter(a => {
-        const matchGrado = !grado || a.grado == grado;
-        const matchSeccion = !seccion || a.seccion == seccion;
-        const matchBusqueda = !busqueda || a.nombre.toLowerCase().includes(busqueda) || String(a.id).includes(busqueda);
-        return matchGrado && matchSeccion && matchBusqueda;
-      });
-
-      // Filter registros por fecha
-      let registrosFecha = globalData.registros.filter(r => r.fecha === fecha);
-
-      // Mapear asistencias por ID
-      let idAsistieronSet = new Set(registrosFecha.map(r => String(r.id).trim()));
-
-      // 1. Renderizar Registro Detallado
-      const tbodyDetalle = document.querySelector("#tablaDetalle tbody");
-      tbodyDetalle.innerHTML = "";
-
-      let registrosFiltrados = registrosFecha.filter(r => {
-        const alumno = globalData.alumnos.find(a => String(a.id).trim() === String(r.id).trim());
-        const g = alumno ? alumno.grado : r.grado;
-        const s = alumno ? alumno.seccion : r.seccion;
+    // Cargar datos al iniciar
+    fetch(API)
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById("loading").style.display = "none";
+        registros = data.asistencia || [];
+        alumnos = data.alumnos || [];
         
-        const matchGrado = !grado || g == grado;
-        const matchSeccion = !seccion || s == seccion;
-        const matchBusqueda = !busqueda || r.nombre.toLowerCase().includes(busqueda) || String(r.id).includes(busqueda);
-        return matchGrado && matchSeccion && matchBusqueda;
+        // Asignar fecha de hoy por defecto al selector
+        const hoyISO = new Date().toLocaleDateString('sv-SE');
+        document.getElementById("fecha").value = hoyISO;
+
+        actualizar();
+        document.querySelectorAll("select, input").forEach(x => x.addEventListener("change", actualizar));
+      })
+      .catch(err => {
+        document.getElementById("loading").innerText = "❌ Error al cargar los datos. Verifique su conexión.";
+        console.error(err);
       });
 
-      registrosFiltrados.forEach(r => {
-        tbodyDetalle.innerHTML += `
-          <tr>
-            <td>${r.fecha}</td>
-            <td>${r.hora}</td>
-            <td>${r.id}</td>
-            <td><strong>${r.nombre}</strong></td>
-            <td>${r.grado}</td>
-            <td>${r.seccion}</td>
-            <td><span class="badge badge-presente">Presente</span></td>
-          </tr>`;
-      });
-
-      // 2. Renderizar Ausentes
-      const tbodyAusentes = document.querySelector("#tablaAusentes tbody");
-      tbodyAusentes.innerHTML = "";
-
-      let ausentes = alumnosFiltrados.filter(a => !idAsistieronSet.has(String(a.id).trim()));
-
-      ausentes.forEach(a => {
-        tbodyAusentes.innerHTML += `
-          <tr>
-            <td>${a.id}</td>
-            <td>${a.nombre}</td>
-            <td>${a.grado}</td>
-            <td>${a.seccion}</td>
-            <td><span class="badge badge-ausente">Ausente</span></td>
-          </tr>`;
-      });
-
-      // 3. Renderizar Resumen por Sección
-      const tbodyResumen = document.querySelector("#tablaResumen tbody");
-      tbodyResumen.innerHTML = "";
-
-      // Agrupar alumnos por (Grado + Sección)
-      let mapaSecciones = {};
-      alumnosFiltrados.forEach(a => {
-        let clave = `${a.grado} - ${a.seccion}`;
-        if (!mapaSecciones[clave]) {
-          mapaSecciones[clave] = { grado: a.grado, seccion: a.seccion, total: 0, asistieron: 0 };
-        }
-        mapaSecciones[clave].total++;
-        if (idAsistieronSet.has(String(a.id).trim())) {
-          mapaSecciones[clave].asistieron++;
-        }
-      });
-
-      let totalMatriculados = alumnosFiltrados.length;
-      let totalAsistieron = alumnosFiltrados.filter(a => idAsistieronSet.has(String(a.id).trim())).length;
-      let totalAusentes = totalMatriculados - totalAsistieron;
-      let porcentajeGlobal = totalMatriculados > 0 ? ((totalAsistieron / totalMatriculados) * 100).toFixed(1) : 0;
-
-      // Actualizar KPIs
-      document.getElementById('kpiTotal').innerText = totalMatriculados;
-      document.getElementById('kpiAsistieron').innerText = totalAsistieron;
-      document.getElementById('kpiAusentes').innerText = totalAusentes;
-      document.getElementById('kpiPorcentaje').innerText = porcentajeGlobal + "%";
-
-      Object.values(mapaSecciones).forEach(sec => {
-        let aus = sec.total - sec.asistieron;
-        let pct = sec.total > 0 ? ((sec.asistieron / sec.total) * 100).toFixed(1) : 0;
-        tbodyResumen.innerHTML += `
-          <tr>
-            <td><strong>${sec.grado}</strong></td>
-            <td><strong>${sec.seccion}</strong></td>
-            <td>${sec.total}</td>
-            <td style="color:var(--success); font-weight:bold;">${sec.asistieron}</td>
-            <td style="color:var(--danger); font-weight:bold;">${aus}</td>
-            <td><strong>${pct}%</strong></td>
-          </tr>`;
-      });
-    }
-
-    // ==========================================
-    // FUNCIONES DE EXPORTACIÓN A EXCEL (.XLSX)
-    // ==========================================
-
-    function obtenerFechaFiltro() {
-      return document.getElementById('filtroFecha').value || new Date().toISOString().split('T')[0];
-    }
-
-    // 1. Exportar Resumen por Sección
-    function exportarExcelResumen() {
-      const tabla = document.getElementById('tablaResumen');
-      if (!tabla || tabla.rows.length <= 1) {
-        alert("⚠️ No hay datos en la tabla de resumen para exportar.");
-        return;
-      }
-      const wb = XLSX.utils.table_to_book(tabla, { sheet: "Resumen_Secciones" });
-      XLSX.writeFile(wb, `Resumen_Asistencia_${obtenerFechaFiltro()}.xlsx`);
-    }
-
-    // 2. Exportar Registro Detallado
-    function exportarExcelDetallado() {
-      const tabla = document.getElementById('tablaDetalle');
-      if (!tabla || tabla.rows.length <= 1) {
-        alert("⚠️ No hay registros detallados de asistencia para exportar.");
-        return;
-      }
-      const wb = XLSX.utils.table_to_book(tabla, { sheet: "Detalle_Asistencia" });
-      XLSX.writeFile(wb, `Detalle_Asistencia_${obtenerFechaFiltro()}.xlsx`);
-    }
-
-    // 3. Exportar Lista de Ausentes
-    function exportarExcelAusentes() {
-      const tabla = document.getElementById('tablaAusentes');
-      if (!tabla || tabla.rows.length <= 1) {
-        alert("⚠️ No hay alumnos ausentes para la fecha seleccionada.");
-        return;
-      }
-      const wb = XLSX.utils.table_to_book(tabla, { sheet: "Alumnos_Ausentes" });
-      XLSX.writeFile(wb, `Alumnos_Ausentes_${obtenerFechaFiltro()}.xlsx`);
-    }
-
-    // 4. Exportar Reporte Completo Multi-Pestañas (.xlsx)
-    function exportarExcelCompleto() {
-      const wb = XLSX.utils.book_new();
-      const fecha = obtenerFechaFiltro();
-      let contieneHojas = false;
-
-      // Hoja 1: Resumen
-      const tablaResumen = document.getElementById('tablaResumen');
-      if (tablaResumen && tablaResumen.rows.length > 1) {
-        const wsResumen = XLSX.utils.table_to_sheet(tablaResumen);
-        XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen por Secciones");
-        contieneHojas = true;
-      }
-
-      // Hoja 2: Detalle
-      const tablaDetalle = document.getElementById('tablaDetalle');
-      if (tablaDetalle && tablaDetalle.rows.length > 1) {
-        const wsDetalle = XLSX.utils.table_to_sheet(tablaDetalle);
-        XLSX.utils.book_append_sheet(wb, wsDetalle, "Registro Detallado");
-        contieneHojas = true;
-      }
-
-      // Hoja 3: Ausentes
-      const tablaAusentes = document.getElementById('tablaAusentes');
-      if (tablaAusentes && tablaAusentes.rows.length > 1) {
-        const wsAusentes = XLSX.utils.table_to_sheet(tablaAusentes);
-        XLSX.utils.book_append_sheet(wb, wsAusentes, "Lista de Ausentes");
-        contieneHojas = true;
-      }
-
-      if (!contieneHojas) {
-        alert("⚠️ No hay datos disponibles para generar el reporte completo.");
-        return;
-      }
-
-      // Descargar archivo Excel compuesto
-      XLSX.writeFile(wb, `Reporte_General_Asistencia_${fecha}.xlsx`);
-    }
-
-    // ==========================================
-    // ESCÁNER QR
-    // ==========================================
-
-    function abrirScanner() {
-      document.getElementById('modalScanner').style.display = 'flex';
-      document.getElementById('scannedMsg').innerText = "";
-
-      html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-      html5QrcodeScanner.render(onScanSuccess, onScanError);
-    }
-
-    function cerrarScanner() {
-      if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(error => console.error(error));
-      }
-      document.getElementById('modalScanner').style.display = 'none';
-    }
-
-    function onScanSuccess(decodedText) {
-      document.getElementById('scannedMsg').innerText = "Procesando ID: " + decodedText + "...";
+    function normalizarFecha(fechaRaw) {
+      if (!fechaRaw) return "";
+      let str = String(fechaRaw).trim();
       
-      google.script.run
-        .withSuccessHandler(function(res) {
-          const msgElem = document.getElementById('scannedMsg');
-          msgElem.innerText = res.mensaje;
-          msgElem.style.color = res.exito ? "green" : "red";
-          if (res.exito) {
-            cargarDatos(); // Recargar tablas automáticamente
+      if (str.includes("T")) {
+        str = str.split("T")[0];
+      }
+      
+      if (str.includes("/")) {
+        const partes = str.split("/");
+        if (partes.length === 3) {
+          if (partes[0].length === 4) {
+            return `${partes[0]}-${partes[1].padStart(2, '0')}-${partes[2].padStart(2, '0')}`;
           }
-        })
-        .registrarAsistencia(decodedText);
+          const dia = partes[0].padStart(2, '0');
+          const mes = partes[1].padStart(2, '0');
+          const anio = partes[2];
+          return `${anio}-${mes}-${dia}`;
+        }
+      }
+      
+      if (str.length >= 10 && str.match(/^\d{4}-\d{2}-\d{2}/)) {
+        return str.substring(0, 10);
+      }
+      
+      const d = new Date(fechaRaw);
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      
+      return str.substring(0, 10);
     }
 
-    function onScanError(errorMessage) {
-      // Ignorar errores continuos de búsqueda de frame QR
+    function obtenerHoraLimpia(horaRaw) {
+      if (!horaRaw) return "";
+      const str = String(horaRaw).trim();
+      
+      const d = new Date(horaRaw);
+      if (!isNaN(d.getTime()) && str.includes("T")) {
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        return `${hh}:${mm}:${ss}`;
+      }
+      
+      return str.substring(0, 8);
+    }
+
+    function estadoRegistro(r) {
+      const h = obtenerHoraLimpia(r.hora);
+      if (!h) return "PUNTUAL";
+      return h <= "08:10:00" ? "PUNTUAL" : "TARDE";
+    }
+
+    function actualizar() {
+      const fechaFiltro = document.getElementById("fecha").value;
+      const gradoFiltro = document.getElementById("grado").value;
+      const seccionFiltro = document.getElementById("seccion").value;
+      const estadoFiltro = document.getElementById("estado").value;
+
+      const hoyISO = new Date().toLocaleDateString('sv-SE');
+      const fechaObjetivo = fechaFiltro || hoyISO;
+
+      // 1. Alumnos filtrados según selección de Grado y Sección
+      const alumnosFiltrados = alumnos.filter(a => {
+        if (gradoFiltro && String(a.grado) !== gradoFiltro) return false;
+        if (seccionFiltro && String(a.seccion) !== seccionFiltro) return false;
+        return true;
+      });
+
+      const idsAlumnosValidos = new Set(alumnosFiltrados.map(a => String(a.id).trim()));
+
+      // 2. Registros de asistencia de la fecha objetivo y del grupo seleccionado
+      const registrosFechaGrupo = registros.filter(r => {
+        if (normalizarFecha(r.fecha) !== fechaObjetivo) return false;
+        if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
+        if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
+        return true;
+      });
+
+      // Presentes en esa fecha (IDs únicos)
+      const presentesSet = new Set(
+        registrosFechaGrupo
+          .map(r => String(r.id).trim())
+          .filter(id => idsAlumnosValidos.has(id))
+      );
+
+      const totalAlumnosCount = alumnosFiltrados.length;
+      const totalPresentesCount = presentesSet.size;
+      const totalAusentesCount = Math.max(0, totalAlumnosCount - totalPresentesCount);
+
+      const totalPuntualesCount = registrosFechaGrupo.filter(r => 
+        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'PUNTUAL'
+      ).length;
+
+      const totalTardesCount = registrosFechaGrupo.filter(r => 
+        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'TARDE'
+      ).length;
+
+      // Actualizar Tarjetas superiores
+      document.getElementById("alumnos").innerText = totalAlumnosCount;
+      document.getElementById("presentes").innerText = totalPresentesCount;
+      document.getElementById("ausentesTotal").innerText = totalAusentesCount;
+      document.getElementById("puntuales").innerText = totalPuntualesCount;
+      document.getElementById("tardes").innerText = totalTardesCount;
+      document.getElementById("total").innerText = registrosFechaGrupo.length;
+
+      // 3. Generar Tabla Principal
+      let datosTabla = [];
+      if (estadoFiltro === "AUSENTE") {
+        datosTabla = alumnosFiltrados
+          .filter(a => !presentesSet.has(String(a.id).trim()))
+          .map(a => ({
+            fecha: fechaObjetivo,
+            hora: "--:--:--",
+            id: a.id,
+            nombre: a.nombre,
+            grado: a.grado,
+            seccion: a.seccion,
+            estado: "AUSENTE"
+          }));
+      } else {
+        datosTabla = registros.filter(r => {
+          if (normalizarFecha(r.fecha) !== fechaObjetivo) return false;
+          if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
+          if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
+          if (estadoFiltro && estadoRegistro(r) !== estadoFiltro) return false;
+          return true;
+        });
+      }
+
+      mostrarTabla(datosTabla);
+      mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet);
+      mostrarResumen(fechaObjetivo, gradoFiltro, seccionFiltro);
+    }
+
+    function mostrarTabla(datos) {
+      const t = document.getElementById("tabla");
+      t.innerHTML = "";
+      
+      datos.forEach(r => {
+        const est = r.estado || estadoRegistro(r);
+        const horaMostrar = obtenerHoraLimpia(r.hora) || r.hora || "--:--:--";
+        const fechaMostrar = normalizarFecha(r.fecha);
+
+        t.innerHTML += `<tr>
+          <td>${fechaMostrar}</td>
+          <td>${horaMostrar}</td>
+          <td>${r.id}</td>
+          <td>${r.nombre}</td>
+          <td>${r.grado}</td>
+          <td>${r.seccion}</td>
+          <td class="${est === 'PUNTUAL' ? 'puntual' : est === 'TARDE' ? 'tarde' : 'ausente'}">${est}</td>
+        </tr>`;
+      });
+    }
+
+    function mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet) {
+      document.getElementById("tituloAusentes").innerText = `❌ Alumnos Ausentes (${fechaObjetivo})`;
+      const listaAusentes = alumnosFiltrados.filter(a => !presentesSet.has(String(a.id).trim()));
+      const t = document.getElementById("ausentes");
+      t.innerHTML = "";
+      
+      if (listaAusentes.length === 0) {
+        t.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#2e7d32; font-weight:bold;">🎉 ¡Sin ausentes registrados para esta fecha y grupo!</td></tr>`;
+        return;
+      }
+
+      listaAusentes.forEach(a => {
+        t.innerHTML += `<tr>
+          <td>${a.id}</td>
+          <td>${a.nombre}</td>
+          <td>${a.grado}</td>
+          <td>${a.seccion}</td>
+        </tr>`;
+      });
+    }
+
+    function mostrarResumen(fechaObjetivo, gradoFiltro, seccionFiltro) {
+      document.getElementById("tituloResumen").innerText = `📊 Resumen por Grado y Sección (${fechaObjetivo})`;
+      
+      const res = {};
+
+      // 1. Agrupar la matrícula total de alumnos por Grado-Sección
+      alumnos.forEach(a => {
+        if (gradoFiltro && String(a.grado) !== gradoFiltro) return;
+        if (seccionFiltro && String(a.seccion) !== seccionFiltro) return;
+        
+        const key = `${a.grado}-${a.seccion}`;
+        if (!res[key]) res[key] = { total: 0, presentes: new Set() };
+        res[key].total++;
+      });
+
+      // 2. Registrar los alumnos que asistieron EN LA FECHA SELECCIONADA
+      registros.forEach(r => {
+        if (normalizarFecha(r.fecha) !== fechaObjetivo) return;
+        if (gradoFiltro && String(r.grado) !== gradoFiltro) return;
+        if (seccionFiltro && String(r.seccion) !== seccionFiltro) return;
+
+        const key = `${r.grado}-${r.seccion}`;
+        if (res[key]) {
+          res[key].presentes.add(String(r.id).trim());
+        }
+      });
+
+      const t = document.getElementById("resumen");
+      t.innerHTML = '';
+      
+      const llaves = Object.keys(res).sort();
+      if (llaves.length === 0) {
+        t.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666;">No hay datos para la combinación seleccionada.</td></tr>`;
+        return;
+      }
+
+      llaves.forEach(k => {
+        const item = res[k];
+        const pre = item.presentes.size;
+        const aus = Math.max(0, item.total - pre);
+        const porcentaje = item.total > 0 ? ((pre / item.total) * 100).toFixed(1) : 0;
+        const partes = k.split('-');
+
+        t.innerHTML += `<tr>
+          <td>${partes[0]}</td>
+          <td>${partes[1]}</td>
+          <td><strong>${item.total}</strong></td>
+          <td class="puntual">${pre}</td>
+          <td class="ausente">${aus}</td>
+          <td><strong>${porcentaje}%</strong></td>
+        </tr>`;
+      });
+    }
+
+    function exportarExcel() {
+      const wb = XLSX.utils.table_to_book(document.getElementById("tablaExport"));
+      XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
     }
   </script>
 </body>
