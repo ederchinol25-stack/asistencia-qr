@@ -36,7 +36,7 @@
 </head>
 <body>
 
-  <h1>📊 Dashboard de Asistencia Escolar</h1>
+  <h1>📊ASISTENCIA ESCOLAR I.E. SANTA RITA DE SIGUAS</h1>
 
   <div id="loading">⏳ Cargando datos desde Google Sheets...</div>
 
@@ -89,7 +89,7 @@
   <div class="panel">
     <h2 id="tituloResumen">📊 Resumen por Grado y Sección</h2>
     <table>
-      <thead><tr><th>Grado</th><th>Sección</th><th>Total Alumnos</th><th>Presentes</th><th>Ausentes</th><th>% Asistencia</th></tr></thead>
+      <thead><tr><th>Grado</th><th>Sección</th><th>Total Alumnos</th><th>Presentes</th><th>Tardes</th><th>Ausentes</th><th>% Asistencia</th></tr></thead>
       <tbody id="resumen"></tbody>
     </table>
   </div>
@@ -311,7 +311,7 @@
         if (seccionFiltro && String(a.seccion) !== seccionFiltro) return;
         
         const key = `${a.grado}-${a.seccion}`;
-        if (!res[key]) res[key] = { total: 0, presentes: new Set() };
+        if (!res[key]) res[key] = { total: 0, presentes: new Set(), tardes: new Set() };
         res[key].total++;
       });
 
@@ -324,6 +324,9 @@
         const key = `${r.grado}-${r.seccion}`;
         if (res[key]) {
           res[key].presentes.add(String(r.id).trim());
+          if (estadoRegistro(r) === "TARDE") {
+            res[key].tardes.add(String(r.id).trim());
+          }
         }
       });
 
@@ -332,13 +335,14 @@
       
       const llaves = Object.keys(res).sort();
       if (llaves.length === 0) {
-        t.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666;">No hay datos para la combinación seleccionada.</td></tr>`;
+        t.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#666;">No hay datos para la combinación seleccionada.</td></tr>`;
         return;
       }
 
       llaves.forEach(k => {
         const item = res[k];
         const pre = item.presentes.size;
+        const tar = item.tardes.size;
         const aus = Math.max(0, item.total - pre);
         const porcentaje = item.total > 0 ? ((pre / item.total) * 100).toFixed(1) : 0;
         const partes = k.split('-');
@@ -348,6 +352,7 @@
           <td>${partes[1]}</td>
           <td><strong>${item.total}</strong></td>
           <td class="puntual">${pre}</td>
+          <td class="tarde">${tar}</td>
           <td class="ausente">${aus}</td>
           <td><strong>${porcentaje}%</strong></td>
         </tr>`;
