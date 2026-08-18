@@ -3,85 +3,175 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asistencia Escolar I.E. Santa Rita de Siguas</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <title>Dashboard de Asistencia Escolar</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
-    h1, h2 { text-align: center; color: #1565c0; margin-bottom: 15px; }
-    
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
-    .card { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center; }
-    .card h2 { margin: 5px 0 0 0; color: #1565c0; font-size: 28px; }
-    .card p { margin: 0; color: #666; font-size: 13px; font-weight: bold; }
-
-    .filtros, .panel { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); margin-top: 15px; }
-    .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
-    
-    select, input, button { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-    button { background: #1565c0; color: white; border: none; cursor: pointer; font-weight: bold; }
-    button:hover { background: #0d47a1; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-    th { background: #1565c0; color: #fff; padding: 10px; text-align: left; }
-    td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-
-    .puntual { color: #2e7d32; font-weight: bold; }
-    .tarde { color: #d97706; font-weight: bold; }
-    .ausente { color: #c62828; font-weight: bold; }
-    
-    #loading { text-align: center; font-weight: bold; color: #1565c0; padding: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #1565c0;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      text-align: center;
+    }
+    .card h2 {
+      margin: 5px 0 0 0;
+      color: #1565c0;
+      font-size: 26px;
+    }
+    .card p {
+      margin: 0;
+      color: #666;
+      font-size: 13px;
+    }
+    .filtros, .panel {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      margin-bottom: 20px;
+    }
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .filtros label {
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .filtros input, .filtros select, button {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    button {
+      background: #1565c0;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #0d47a1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th {
+      background: #1565c0;
+      color: #fff;
+      padding: 10px;
+      text-align: left;
+    }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .puntual {
+      color: #2e7d32;
+      font-weight: bold;
+    }
+    .tarde {
+      color: #e65100;
+      font-weight: bold;
+    }
+    .ausente {
+      color: #c62828;
+      font-weight: bold;
+    }
+    #loading {
+      text-align: center;
+      font-weight: bold;
+      color: #1565c0;
+      padding: 20px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>📊 Dashboard de Asistencia Escolar</h1>
+  <h1>📊 ASISTENCIA ESCOLAR IE SANTA RITA DE SIGUASr</h1>
 
   <div id="loading">⏳ Cargando datos desde Google Sheets...</div>
 
   <div class="cards">
     <div class="card"><h2 id="alumnos">0</h2><p>Total Alumnos</p></div>
     <div class="card"><h2 id="presentes">0</h2><p>Presentes</p></div>
-    <div class="card"><h2 id="ausentesTotal">0</h2><p>Ausentes</p></div>
+    <div class="card"><h2 id="ausentesCount">0</h2><p>Ausentes</p></div>
     <div class="card"><h2 id="puntuales">0</h2><p>Puntuales</p></div>
     <div class="card"><h2 id="tardes">0</h2><p>Tardes</p></div>
-    <div class="card"><h2 id="total">0</h2><p>Registros en Fecha</p></div>
+    <div class="card"><h2 id="registrosCount">0</h2><p>Registros en Fecha</p></div>
   </div>
 
   <div class="filtros">
-    <input type="date" id="fecha">
-    <select id="grado">
-      <option value="">Todos los grados</option>
-      <option>1°</option><option>2°</option><option>3°</option><option>4°</option><option>5°</option>
+    <label for="fechaFiltro">📅 Fecha:</label>
+    <input type="date" id="fechaFiltro" onchange="aplicarFiltros()">
+
+    <label for="gradoFiltro">🎓 Grado:</label>
+    <select id="gradoFiltro" onchange="aplicarFiltros()">
+      <option value="">Todos</option>
     </select>
-    <select id="seccion">
-      <option value="">Todas las secciones</option>
-      <option>A</option><option>B</option><option>C</option>
+
+    <label for="seccionFiltro">🏫 Sección:</label>
+    <select id="seccionFiltro" onchange="aplicarFiltros()">
+      <option value="">Todas</option>
     </select>
-    <select id="estado">
-      <option value="">Todos los estados</option>
-      <option value="PUNTUAL">🟢 Puntual</option>
-      <option value="TARDE">🟡 Tarde</option>
-      <option value="AUSENTE">❌ Ausente</option>
-    </select>
-    <button onclick="exportarExcel()">📥 Exportar Excel</button>
+
+    <button onclick="limpiarFiltros()">🔄 Limpiar Filtros</button>
   </div>
 
   <div class="panel">
-    <h2>📋 Registros de Asistencia</h2>
-    <table id="tablaExport">
+    <h2 id="tituloDetalle">📋 Registros de Asistencia</h2>
+    <table>
       <thead>
-        <tr><th>Fecha</th><th>Hora</th><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th><th>Estado</th></tr>
+        <tr>
+          <th>Hora</th>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Grado</th>
+          <th>Sección</th>
+          <th>Estado</th>
+        </tr>
       </thead>
-      <tbody id="tabla"></tbody>
+      <tbody id="detalle"></tbody>
     </table>
   </div>
 
   <div class="panel">
     <h2 id="tituloAusentes">❌ Alumnos Ausentes</h2>
     <table>
-      <thead><tr><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th></tr></thead>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Grado</th>
+          <th>Sección</th>
+        </tr>
+      </thead>
       <tbody id="ausentes"></tbody>
     </table>
   </div>
@@ -89,204 +179,210 @@
   <div class="panel">
     <h2 id="tituloResumen">📊 Resumen por Grado y Sección</h2>
     <table>
-      <thead><tr><th>Grado</th><th>Sección</th><th>Total Alumnos</th><th>Presentes</th><th>Ausentes</th><th>% Asistencia</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Grado</th>
+          <th>Sección</th>
+          <th>Total Alumnos</th>
+          <th>Presentes</th>
+          <th>Tardes</th>
+          <th>Ausentes</th>
+          <th>% Asistencia</th>
+        </tr>
+      </thead>
       <tbody id="resumen"></tbody>
     </table>
   </div>
 
   <script>
-    const API = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
+    const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
+
     let registros = [];
     let alumnos = [];
 
-    // Cargar datos al iniciar
-    fetch(API)
-      .then(r => r.json())
-      .then(data => {
-        document.getElementById("loading").style.display = "none";
-        registros = data.asistencia || [];
-        alumnos = data.alumnos || [];
-        
-        // Asignar fecha de hoy por defecto al selector
-        const hoyISO = new Date().toLocaleDateString('sv-SE');
-        document.getElementById("fecha").value = hoyISO;
-
-        actualizar();
-        document.querySelectorAll("select, input").forEach(x => x.addEventListener("change", actualizar));
-      })
-      .catch(err => {
-        document.getElementById("loading").innerText = "❌ Error al cargar los datos. Verifique su conexión.";
-        console.error(err);
-      });
-
-    function normalizarFecha(fechaRaw) {
-      if (!fechaRaw) return "";
-      let str = String(fechaRaw).trim();
-      
-      if (str.includes("T")) {
-        str = str.split("T")[0];
+    // Normaliza cualquier representación de fecha a formato YYYY-MM-DD
+    function normalizarFecha(f) {
+      if (!f) return '';
+      let str = String(f).trim();
+      if (str.includes('T')) {
+        str = str.split('T')[0];
       }
-      
-      if (str.includes("/")) {
-        const partes = str.split("/");
-        if (partes.length === 3) {
-          if (partes[0].length === 4) {
-            return `${partes[0]}-${partes[1].padStart(2, '0')}-${partes[2].padStart(2, '0')}`;
-          }
-          const dia = partes[0].padStart(2, '0');
-          const mes = partes[1].padStart(2, '0');
-          const anio = partes[2];
-          return `${anio}-${mes}-${dia}`;
-        }
-      }
-      
-      if (str.length >= 10 && str.match(/^\d{4}-\d{2}-\d{2}/)) {
+      if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
         return str.substring(0, 10);
       }
-      
-      const d = new Date(fechaRaw);
-      if (!isNaN(d.getTime())) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+        const partes = str.split('/');
+        const d = partes[0].padStart(2, '0');
+        const m = partes[1].padStart(2, '0');
+        const y = partes[2].substring(0, 4);
+        return `${y}-${m}-${d}`;
       }
-      
-      return str.substring(0, 10);
+      const dObj = new Date(f);
+      if (!isNaN(dObj.getTime())) {
+        const y = dObj.getFullYear();
+        const m = String(dObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+      return str;
     }
 
-    function obtenerHoraLimpia(horaRaw) {
-      if (!horaRaw) return "";
-      const str = String(horaRaw).trim();
-      
-      const d = new Date(horaRaw);
-      if (!isNaN(d.getTime()) && str.includes("T")) {
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        return `${hh}:${mm}:${ss}`;
-      }
-      
-      return str.substring(0, 8);
+    // Obtiene la fecha actual en formato YYYY-MM-DD
+    function obtenerFechaHoy() {
+      const hoy = new Date();
+      const y = hoy.getFullYear();
+      const m = String(hoy.getMonth() + 1).padStart(2, '0');
+      const d = String(hoy.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
+    // Evalúa si la hora de registro fue puntual o tarde
     function estadoRegistro(r) {
-      const h = obtenerHoraLimpia(r.hora);
-      if (!h) return "PUNTUAL";
+      let h = String(r.hora || "").trim();
+      if (h.includes('T')) {
+        h = h.split('T')[1];
+      }
+      if (h.length >= 8) {
+        h = h.substring(0, 8);
+      } else if (h.length >= 5) {
+        h = h.substring(0, 5) + ":00";
+      }
       return h <= "08:10:00" ? "PUNTUAL" : "TARDE";
     }
 
-    function actualizar() {
-      const fechaFiltro = document.getElementById("fecha").value;
-      const gradoFiltro = document.getElementById("grado").value;
-      const seccionFiltro = document.getElementById("seccion").value;
-      const estadoFiltro = document.getElementById("estado").value;
+    // Carga inicial de datos desde Google Apps Script
+    async function cargarDatos() {
+      try {
+        const res = await fetch(`${WEBAPP}?accion=datos`);
+        const json = await res.json();
 
-      const hoyISO = new Date().toLocaleDateString('sv-SE');
-      const fechaObjetivo = fechaFiltro || hoyISO;
+        registros = json.asistencia || [];
+        alumnos = json.alumnos || [];
 
-      // 1. Alumnos filtrados según selección de Grado y Sección
+        document.getElementById("loading").style.display = "none";
+
+        // Establecer la fecha de hoy por defecto en el calendario
+        const fechaInput = document.getElementById("fechaFiltro");
+        if (!fechaInput.value) {
+          fechaInput.value = obtenerFechaHoy();
+        }
+
+        poblarCombos();
+        aplicarFiltros();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("loading").innerHTML = "❌ Error al cargar los datos. Verifique la conexión o la URL.";
+      }
+    }
+
+    // Llena los selectores desplegables de Grado y Sección
+    function poblarCombos() {
+      const grados = [...new Set(alumnos.map(a => String(a.grado)))].sort();
+      const secciones = [...new Set(alumnos.map(a => String(a.seccion)))].sort();
+
+      const selectGrado = document.getElementById("gradoFiltro");
+      const selectSeccion = document.getElementById("seccionFiltro");
+
+      selectGrado.innerHTML = '<option value="">Todos</option>';
+      selectSeccion.innerHTML = '<option value="">Todas</option>';
+
+      grados.forEach(g => {
+        if (g) selectGrado.innerHTML += `<option value="${g}">${g}</option>`;
+      });
+
+      secciones.forEach(s => {
+        if (s) selectSeccion.innerHTML += `<option value="${s}">${s}</option>`;
+      });
+    }
+
+    // Aplica todos los filtros seleccionados (Fecha, Grado, Sección)
+    function aplicarFiltros() {
+      const fechaInput = document.getElementById("fechaFiltro").value;
+      const fechaObjetivo = fechaInput ? normalizarFecha(fechaInput) : obtenerFechaHoy();
+      const gradoFiltro = document.getElementById("gradoFiltro").value;
+      const seccionFiltro = document.getElementById("seccionFiltro").value;
+
+      // 1. Filtrar catálogo de alumnos
       const alumnosFiltrados = alumnos.filter(a => {
         if (gradoFiltro && String(a.grado) !== gradoFiltro) return false;
         if (seccionFiltro && String(a.seccion) !== seccionFiltro) return false;
         return true;
       });
 
-      const idsAlumnosValidos = new Set(alumnosFiltrados.map(a => String(a.id).trim()));
-
-      // 2. Registros de asistencia de la fecha objetivo y del grupo seleccionado
-      const registrosFechaGrupo = registros.filter(r => {
-        if (normalizarFecha(r.fecha) !== fechaObjetivo) return false;
+      // 2. Filtrar registros por fecha, grado y sección
+      const registrosDelDia = registros.filter(r => {
+        const fechaReg = normalizarFecha(r.fecha);
+        if (fechaReg !== fechaObjetivo) return false;
         if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
         if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
         return true;
       });
 
-      // Presentes en esa fecha (IDs únicos)
-      const presentesSet = new Set(
-        registrosFechaGrupo
-          .map(r => String(r.id).trim())
-          .filter(id => idsAlumnosValidos.has(id))
-      );
+      // 3. Obtener alumnos únicos presentes en el día
+      const presentesSet = new Set(registrosDelDia.map(r => String(r.id).trim()));
 
-      const totalAlumnosCount = alumnosFiltrados.length;
-      const totalPresentesCount = presentesSet.size;
-      const totalAusentesCount = Math.max(0, totalAlumnosCount - totalPresentesCount);
+      // 4. Calcular métricas puntuales y tardes
+      let puntualesCount = 0;
+      let tardesCount = 0;
+      registrosDelDia.forEach(r => {
+        if (estadoRegistro(r) === 'PUNTUAL') {
+          puntualesCount++;
+        } else {
+          tardesCount++;
+        }
+      });
 
-      const totalPuntualesCount = registrosFechaGrupo.filter(r => 
-        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'PUNTUAL'
-      ).length;
+      const totalAlumnos = alumnosFiltrados.length;
+      const totalPresentes = presentesSet.size;
+      const totalAusentes = Math.max(0, totalAlumnos - totalPresentes);
 
-      const totalTardesCount = registrosFechaGrupo.filter(r => 
-        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'TARDE'
-      ).length;
+      // Actualizar tarjetas de métricas
+      document.getElementById("alumnos").innerText = totalAlumnos;
+      document.getElementById("presentes").innerText = totalPresentes;
+      document.getElementById("ausentesCount").innerText = totalAusentes;
+      document.getElementById("puntuales").innerText = puntualesCount;
+      document.getElementById("tardes").innerText = tardesCount;
+      document.getElementById("registrosCount").innerText = registrosDelDia.length;
 
-      // Actualizar Tarjetas superiores
-      document.getElementById("alumnos").innerText = totalAlumnosCount;
-      document.getElementById("presentes").innerText = totalPresentesCount;
-      document.getElementById("ausentesTotal").innerText = totalAusentesCount;
-      document.getElementById("puntuales").innerText = totalPuntualesCount;
-      document.getElementById("tardes").innerText = totalTardesCount;
-      document.getElementById("total").innerText = registrosFechaGrupo.length;
-
-      // 3. Generar Tabla Principal
-      let datosTabla = [];
-      if (estadoFiltro === "AUSENTE") {
-        datosTabla = alumnosFiltrados
-          .filter(a => !presentesSet.has(String(a.id).trim()))
-          .map(a => ({
-            fecha: fechaObjetivo,
-            hora: "--:--:--",
-            id: a.id,
-            nombre: a.nombre,
-            grado: a.grado,
-            seccion: a.seccion,
-            estado: "AUSENTE"
-          }));
-      } else {
-        datosTabla = registros.filter(r => {
-          if (normalizarFecha(r.fecha) !== fechaObjetivo) return false;
-          if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
-          if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
-          if (estadoFiltro && estadoRegistro(r) !== estadoFiltro) return false;
-          return true;
-        });
-      }
-
-      mostrarTabla(datosTabla);
+      // Actualizar paneles y tablas
+      mostrarDetalle(fechaObjetivo, registrosDelDia);
       mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet);
       mostrarResumen(fechaObjetivo, gradoFiltro, seccionFiltro);
     }
 
-    function mostrarTabla(datos) {
-      const t = document.getElementById("tabla");
+    // Muestra el desglose individual de registros del día
+    function mostrarDetalle(fechaObjetivo, registrosDelDia) {
+      document.getElementById("tituloDetalle").innerText = `📋 Registros de Asistencia (${fechaObjetivo})`;
+      const t = document.getElementById("detalle");
       t.innerHTML = "";
-      
-      datos.forEach(r => {
-        const est = r.estado || estadoRegistro(r);
-        const horaMostrar = obtenerHoraLimpia(r.hora) || r.hora || "--:--:--";
-        const fechaMostrar = normalizarFecha(r.fecha);
 
+      if (registrosDelDia.length === 0) {
+        t.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666;">No hay registros de asistencia para esta fecha y filtro.</td></tr>`;
+        return;
+      }
+
+      registrosDelDia.forEach(r => {
+        const est = estadoRegistro(r);
         t.innerHTML += `<tr>
-          <td>${fechaMostrar}</td>
-          <td>${horaMostrar}</td>
+          <td>${r.hora}</td>
           <td>${r.id}</td>
           <td>${r.nombre}</td>
           <td>${r.grado}</td>
           <td>${r.seccion}</td>
-          <td class="${est === 'PUNTUAL' ? 'puntual' : est === 'TARDE' ? 'tarde' : 'ausente'}">${est}</td>
+          <td class="${est === 'PUNTUAL' ? 'puntual' : 'tarde'}">${est}</td>
         </tr>`;
       });
     }
 
+    // Muestra la lista de alumnos que faltaron en el día
     function mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet) {
       document.getElementById("tituloAusentes").innerText = `❌ Alumnos Ausentes (${fechaObjetivo})`;
       const listaAusentes = alumnosFiltrados.filter(a => !presentesSet.has(String(a.id).trim()));
       const t = document.getElementById("ausentes");
       t.innerHTML = "";
-      
+
       if (listaAusentes.length === 0) {
-        t.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#2e7d32; font-weight:bold;">🎉 ¡Sin ausentes registrados para esta fecha y grupo!</td></tr>`;
+        t.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#2e7d32; font-weight:bold;">🎉 ¡Sin ausentes registrados para esta fecha y filtro!</td></tr>`;
         return;
       }
 
@@ -300,22 +396,29 @@
       });
     }
 
+    // Renderiza la tabla de Resumen por Grado y Sección con la columna de Tardes incluida
     function mostrarResumen(fechaObjetivo, gradoFiltro, seccionFiltro) {
       document.getElementById("tituloResumen").innerText = `📊 Resumen por Grado y Sección (${fechaObjetivo})`;
-      
+
       const res = {};
 
-      // 1. Agrupar la matrícula total de alumnos por Grado-Sección
+      // Inicializar totales de matriculados por grado y sección
       alumnos.forEach(a => {
         if (gradoFiltro && String(a.grado) !== gradoFiltro) return;
         if (seccionFiltro && String(a.seccion) !== seccionFiltro) return;
-        
+
         const key = `${a.grado}-${a.seccion}`;
-        if (!res[key]) res[key] = { total: 0, presentes: new Set() };
+        if (!res[key]) {
+          res[key] = {
+            total: 0,
+            presentes: new Set(),
+            tardes: new Set()
+          };
+        }
         res[key].total++;
       });
 
-      // 2. Registrar los alumnos que asistieron EN LA FECHA SELECCIONADA
+      // Acumular presentes y tardanzas registradas en la fecha objetivo
       registros.forEach(r => {
         if (normalizarFecha(r.fecha) !== fechaObjetivo) return;
         if (gradoFiltro && String(r.grado) !== gradoFiltro) return;
@@ -323,22 +426,29 @@
 
         const key = `${r.grado}-${r.seccion}`;
         if (res[key]) {
-          res[key].presentes.add(String(r.id).trim());
+          const idAlumno = String(r.id).trim();
+          res[key].presentes.add(idAlumno);
+
+          if (estadoRegistro(r) === 'TARDE') {
+            res[key].tardes.add(idAlumno);
+          }
         }
       });
 
+      // Renderizar datos en la tabla
       const t = document.getElementById("resumen");
-      t.innerHTML = '';
-      
+      t.innerHTML = "";
+
       const llaves = Object.keys(res).sort();
       if (llaves.length === 0) {
-        t.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666;">No hay datos para la combinación seleccionada.</td></tr>`;
+        t.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#666;">No hay datos para la combinación seleccionada.</td></tr>`;
         return;
       }
 
       llaves.forEach(k => {
         const item = res[k];
         const pre = item.presentes.size;
+        const tar = item.tardes.size;
         const aus = Math.max(0, item.total - pre);
         const porcentaje = item.total > 0 ? ((pre / item.total) * 100).toFixed(1) : 0;
         const partes = k.split('-');
@@ -348,16 +458,23 @@
           <td>${partes[1]}</td>
           <td><strong>${item.total}</strong></td>
           <td class="puntual">${pre}</td>
+          <td style="color: #e65100; font-weight: bold;">${tar}</td>
           <td class="ausente">${aus}</td>
           <td><strong>${porcentaje}%</strong></td>
         </tr>`;
       });
     }
 
-    function exportarExcel() {
-      const wb = XLSX.utils.table_to_book(document.getElementById("tablaExport"));
-      XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
+    // Restablece los filtros al día actual sin filtros de grado ni sección
+    function limpiarFiltros() {
+      document.getElementById("fechaFiltro").value = obtenerFechaHoy();
+      document.getElementById("gradoFiltro").value = "";
+      document.getElementById("seccionFiltro").value = "";
+      aplicarFiltros();
     }
+
+    // Iniciar carga al cargar el DOM
+    document.addEventListener("DOMContentLoaded", cargarDatos);
   </script>
 </body>
 </html>
