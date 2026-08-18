@@ -13,7 +13,7 @@
     .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
     .card { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center; }
     .card h2 { margin: 5px 0 0 0; color: #1565c0; font-size: 28px; }
-    .card p { margin: 0; color: #666; font-size: 13px; }
+    .card p { margin: 0; color: #666; font-size: 13px; font-weight: bold; }
 
     .filtros, .panel { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); margin-top: 15px; }
     .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
@@ -41,12 +41,12 @@
   <div id="loading">⏳ Cargando datos desde Google Sheets...</div>
 
   <div class="cards">
-    <div class="card"><h2 id="total">0</h2><p>Total Asistencias</p></div>
-    <div class="card"><h2 id="presentes">0</h2><p>Presentes Hoy</p></div>
-    <div class="card"><h2 id="ausentesTotal">0</h2><p>Ausentes Hoy</p></div>
+    <div class="card"><h2 id="alumnos">0</h2><p>Total Alumnos</p></div>
+    <div class="card"><h2 id="presentes">0</h2><p>Presentes</p></div>
+    <div class="card"><h2 id="ausentesTotal">0</h2><p>Ausentes</p></div>
     <div class="card"><h2 id="puntuales">0</h2><p>Puntuales</p></div>
     <div class="card"><h2 id="tardes">0</h2><p>Tardes</p></div>
-    <div class="card"><h2 id="alumnos">0</h2><p>Total Alumnos</p></div>
+    <div class="card"><h2 id="total">0</h2><p>Registros en Fecha</p></div>
   </div>
 
   <div class="filtros">
@@ -79,7 +79,7 @@
   </div>
 
   <div class="panel">
-    <h2>❌ Alumnos Ausentes de Hoy</h2>
+    <h2 id="tituloAusentes">❌ Alumnos Ausentes</h2>
     <table>
       <thead><tr><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th></tr></thead>
       <tbody id="ausentes"></tbody>
@@ -115,7 +115,6 @@
         console.error(err);
       });
 
-    // Extrae la hora limpia en formato HH:mm:ss
     function obtenerHoraLimpia(horaRaw) {
       if (!horaRaw) return "";
       const str = String(horaRaw).trim();
@@ -126,7 +125,6 @@
       return str.substring(0, 8);
     }
 
-    // Convierte cualquier formato de fecha a "YYYY-MM-DD" en tiempo local
     function obtenerFechaLocalISO(fechaRaw) {
       if (!fechaRaw) return "";
       const d = new Date(fechaRaw);
@@ -137,7 +135,6 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // Determina si un alumno es PUNTUAL o TARDE (Hora límite: 08:10:00)
     function estadoRegistro(r) {
       const h = obtenerHoraLimpia(r.hora);
       if (!h) return "PUNTUAL";
@@ -150,25 +147,62 @@
       const seccionFiltro = document.getElementById("seccion").value;
       const estadoFiltro = document.getElementById("estado").value;
 
-      let datos = [];
-      const hoyISO = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
+      const hoyISO = new Date().toLocaleDateString('sv-SE');
+      const fechaObjetivo = fechaFiltro || hoyISO;
+
+      // 1. Filtrar lista de alumnos matriculados según grado y sección seleccionados
+      const alumnosFiltrados = alumnos.filter(a => {
+        if (gradoFiltro && String(a.grado) !== gradoFiltro) return false;
+        if (seccionFiltro && String(a.seccion) !== seccionFiltro) return false;
+        return true;
+      });
+
+      // Set de IDs válidos para evaluar solo alumnos del grupo seleccionado
+      const idsAlumnosValidos = new Set(alumnosFiltrados.map(a => String(a.id).trim()));
+
+      // 2. Registros que coinciden con la Fecha + Grado + Sección
+      const registrosFechaGrupo = registros.filter(r => {
+        if (obtenerFechaLocalISO(r.fecha) !== fechaObjetivo) return false;
+        if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
+        if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
+        return true;
+      });
+
+      // 3. Cálculo dinámico para las tarjetas superiores
+      const presentesSet = new Set(
+        registrosFechaGrupo
+          .map(r => String(r.id).trim())
+          .filter(id => idsAlumnosValidos.has(id))
+      );
+
+      const totalAlumnosCount = alumnosFiltrados.length;
+      const totalPresentesCount = presentesSet.size;
+      const totalAusentesCount = Math.max(0, totalAlumnosCount - totalPresentesCount);
+
+      const totalPuntualesCount = registrosFechaGrupo.filter(r => 
+        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'PUNTUAL'
+      ).length;
+
+      const totalTardesCount = registrosFechaGrupo.filter(r => 
+        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'TARDE'
+      ).length;
+
+      // Actualización de los valores de las Tarjetas
+      document.getElementById("alumnos").innerText = totalAlumnosCount;
+      document.getElementById("presentes").innerText = totalPresentesCount;
+      document.getElementById("ausentesTotal").innerText = totalAusentesCount;
+      document.getElementById("puntuales").innerText = totalPuntualesCount;
+      document.getElementById("tardes").innerText = totalTardesCount;
+      document.getElementById("total").innerText = registrosFechaGrupo.length;
+
+      // 4. Filtrar registros para la Tabla Principal
+      let datosTabla = [];
 
       if (estadoFiltro === "AUSENTE") {
-        const presentesSet = new Set(
-          registros
-            .filter(r => obtenerFechaLocalISO(r.fecha) === (fechaFiltro || hoyISO))
-            .map(r => String(r.id).trim())
-        );
-
-        datos = alumnos
+        datosTabla = alumnosFiltrados
           .filter(a => !presentesSet.has(String(a.id).trim()))
-          .filter(a => {
-            if (gradoFiltro && String(a.grado) !== gradoFiltro) return false;
-            if (seccionFiltro && String(a.seccion) !== seccionFiltro) return false;
-            return true;
-          })
           .map(a => ({
-            fecha: fechaFiltro || hoyISO,
+            fecha: fechaObjetivo,
             hora: "--:--:--",
             id: a.id,
             nombre: a.nombre,
@@ -176,9 +210,8 @@
             seccion: a.seccion,
             estado: "AUSENTE"
           }));
-
       } else {
-        datos = registros.filter(r => {
+        datosTabla = registros.filter(r => {
           if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
           if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
           if (fechaFiltro && obtenerFechaLocalISO(r.fecha) !== fechaFiltro) return false;
@@ -187,10 +220,9 @@
         });
       }
 
-      mostrarTabla(datos);
-      estadisticas(fechaFiltro);
-      mostrarAusentes();
-      mostrarResumen();
+      mostrarTabla(datosTabla);
+      mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet);
+      mostrarResumen(fechaObjetivo);
     }
 
     function mostrarTabla(datos) {
@@ -214,39 +246,17 @@
       });
     }
 
-    function estadisticas(fechaFiltro) {
-      const hoyISO = fechaFiltro || new Date().toLocaleDateString('sv-SE');
-      
-      const presentesSet = new Set(
-        registros
-          .filter(r => obtenerFechaLocalISO(r.fecha) === hoyISO)
-          .map(r => String(r.id).trim())
-      );
-      
-      const totalPresentesHoy = presentesSet.size;
-
-      document.getElementById("total").innerText = registros.length;
-      document.getElementById("alumnos").innerText = alumnos.length;
-      document.getElementById("presentes").innerText = totalPresentesHoy;
-      document.getElementById("ausentesTotal").innerText = Math.max(0, alumnos.length - totalPresentesHoy);
-
-      const puntualesCount = registros.filter(r => estadoRegistro(r) === 'PUNTUAL').length;
-      document.getElementById("puntuales").innerText = puntualesCount;
-      document.getElementById("tardes").innerText = registros.length - puntualesCount;
-    }
-
-    function mostrarAusentes() {
-      const hoyISO = new Date().toLocaleDateString('sv-SE');
-      const presentesSet = new Set(
-        registros
-          .filter(r => obtenerFechaLocalISO(r.fecha) === hoyISO)
-          .map(r => String(r.id).trim())
-      );
-      
-      const listaAusentes = alumnos.filter(a => !presentesSet.has(String(a.id).trim()));
+    function mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet) {
+      document.getElementById("tituloAusentes").innerText = `❌ Alumnos Ausentes (${fechaObjetivo})`;
+      const listaAusentes = alumnosFiltrados.filter(a => !presentesSet.has(String(a.id).trim()));
       const t = document.getElementById("ausentes");
       t.innerHTML = "";
       
+      if (listaAusentes.length === 0) {
+        t.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#2e7d32; font-weight:bold;">🎉 ¡Sin ausentes para la fecha y sección seleccionada!</td></tr>`;
+        return;
+      }
+
       listaAusentes.forEach(a => {
         t.innerHTML += `<tr>
           <td>${a.id}</td>
@@ -257,8 +267,7 @@
       });
     }
 
-    function mostrarResumen() {
-      const hoyISO = new Date().toLocaleDateString('sv-SE');
+    function mostrarResumen(fechaObjetivo) {
       const res = {};
 
       alumnos.forEach(a => {
@@ -268,7 +277,7 @@
       });
 
       registros.forEach(r => {
-        if (obtenerFechaLocalISO(r.fecha) !== hoyISO) return;
+        if (obtenerFechaLocalISO(r.fecha) !== fechaObjetivo) return;
         const key = `${r.grado}-${r.seccion}`;
         if (res[key]) res[key].presentes.add(String(r.id).trim());
       });
