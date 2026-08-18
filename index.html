@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asistencia QR</title>
+  <title>Control de Asistencia QR</title>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+    }
     body {
       font-family: Arial, sans-serif;
       text-align: center;
@@ -14,16 +18,56 @@
       padding: 20px;
       min-height: 100vh;
     }
-    h2 { color: #1565c0; margin-bottom: 16px; font-size: 20px; }
+    h2 { 
+      color: #1565c0; 
+      margin-bottom: 16px; 
+      font-size: 20px; 
+    }
     #reader {
       width: 100%;
       max-width: 400px;
-      margin: 0 auto 20px auto;
+      margin: 0 auto 15px auto;
       background: white;
       padding: 10px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
+
+    /* Estilos para el Registro Manual */
+    .manual-container {
+      max-width: 400px;
+      margin: 0 auto 15px auto;
+      display: flex;
+      gap: 8px;
+    }
+    .manual-container input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid #b0bec5;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .manual-container input:focus {
+      border-color: #1565c0;
+      box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
+    }
+    .manual-container button {
+      padding: 12px 18px;
+      background: #1565c0;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .manual-container button:hover {
+      background: #0d47a1;
+    }
+
     #resultado {
       max-width: 400px;
       margin: 0 auto;
@@ -43,6 +87,7 @@
     }
     #resultado .nombre { font-size: 18px; }
     #resultado .detalle { font-size: 14px; font-weight: normal; color: #555; }
+    
     #hora {
       max-width: 400px;
       margin: 10px auto 0 auto;
@@ -54,39 +99,64 @@
 <body>
 
   <h2>📋 CONTROL DE ASISTENCIA QR</h2>
+  
   <div id="reader"></div>
-  <div id="resultado">📷 Esperando QR...</div>
+
+  <div class="manual-container">
+    <input type="text" id="manualId" placeholder="Escriba ID del alumno..." autocomplete="off">
+    <button onclick="registrarManual()">Registrar</button>
+  </div>
+
+  <div id="resultado">📷 Esperando QR o ID...</div>
   <div id="hora"></div>
 
   <script>
     const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
-
-    // ✅ Bloqueo inmediato con Set de IDs en proceso
+    
+    // Bloqueo de IDs en proceso
     const enProceso = new Set();
+    let audioCtx = null;
+
+    // Inicializa el contexto de audio asegurando permisos del navegador
+    function obtenerAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
 
     function beep() {
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = obtenerAudioContext();
         const o = ctx.createOscillator();
         const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.frequency.value = 880; o.type = "sine";
+        o.connect(g); 
+        g.connect(ctx.destination);
+        o.frequency.value = 880; 
+        o.type = "sine";
         g.gain.setValueAtTime(3, ctx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
+        o.start(ctx.currentTime); 
+        o.stop(ctx.currentTime + 0.4);
       } catch(e) {}
     }
 
     function beepError() {
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = obtenerAudioContext();
         const o = ctx.createOscillator();
         const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.frequency.value = 300; o.type = "sine";
+        o.connect(g); 
+        g.connect(ctx.destination);
+        o.frequency.value = 300; 
+        o.type = "sine";
         g.gain.setValueAtTime(3, ctx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.5);
+        o.start(ctx.currentTime); 
+        o.stop(ctx.currentTime + 0.5);
       } catch(e) {}
     }
 
@@ -100,12 +170,13 @@
     }
 
     function registrar(id) {
-      id = id.toString().trim().replace(/\s+/g, "");
+      // Limpieza de caracteres de control e invisibles
+      id = id.toString().trim().replace(/[\r\n\t]/g, "").replace(/\s+/g, "");
+      if (!id) return;
 
-      // ✅ Bloqueo inmediato antes de hacer fetch
+      // Bloqueo inmediato en el frontend
       if (enProceso.has(id)) return;
       enProceso.add(id);
-
       mostrar("⏳", "Registrando...", id, "#fff9c4");
 
       fetch(WEBAPP + "?id=" + encodeURIComponent(id))
@@ -128,27 +199,53 @@
           } else if (estado === "NO_ENCONTRADO") {
             mostrar("❌", "No encontrado", id, "#ffcdd2");
             beepError();
+          } else if (estado === "SISTEMA_OCUPADO") {
+            mostrar("⏳", "Sistema ocupado", "Reintentando, espere un segundo...", "#fff9c4");
+            beepError();
           } else {
-            mostrar("❌", "Error", resp, "#ffcdd2");
+            mostrar("❌", "Error de respuesta", resp, "#ffcdd2");
             beepError();
           }
         })
         .catch(() => {
-          mostrar("❌", "Error de conexión", "", "#ffcdd2");
+          mostrar("❌", "Error de conexión", "Verifique su red", "#ffcdd2");
           beepError();
         })
         .finally(() => {
-          // ✅ Liberar después de 5 segundos
+          // Cooldown de 5 segundos antes de permitir escaneo repetido del mismo ID
           setTimeout(() => enProceso.delete(id), 5000);
         });
     }
 
+    // Función para el botón o tecla Enter de ingreso manual
+    function registrarManual() {
+      const input = document.getElementById("manualId");
+      const val = input.value.trim();
+      if (val) {
+        registrar(val);
+        input.value = ""; // Limpia el input tras enviar
+      } else {
+        mostrar("⚠️", "Campo vacío", "Por favor ingrese un ID válido", "#fff3e0");
+        beepError();
+      }
+    }
+
     function onScanSuccess(decodedText) {
-      decodedText = decodedText.toString().trim().replace(/\s+/g, "");
       registrar(decodedText);
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+      // Activa audio en la primera interacción táctil si el navegador bloquea autoplay
+      document.body.addEventListener("click", obtenerAudioContext, { once: true });
+
+      // Escuchar tecla "Enter" en la caja de texto manual
+      document.getElementById("manualId").addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          registrarManual();
+        }
+      });
+
+      // Inicializa el lector QR por cámara
       const scanner = new Html5QrcodeScanner(
         "reader",
         { fps: 5, qrbox: 250 },
