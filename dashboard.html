@@ -602,17 +602,25 @@ tr:nth-child(even) {
 
   <table>
 
- <thead>
-  <tr>
-    <th>Grado</th>
-    <th>Sección</th>
-    <th>Total</th>
-    <th>Presentes</th>
-    <th>Tardes</th>
-    <th>Ausentes</th>
-    <th>% Asistencia</th>
-  </tr>
-</thead>
+    <thead>
+
+      <tr>
+
+        <th>Grado</th>
+
+        <th>Sección</th>
+
+        <th>Total</th>
+
+        <th>Presentes</th>
+
+        <th>Ausentes</th>
+
+        <th>% Asistencia</th>
+
+      </tr>
+
+    </thead>
 
 
     <tbody id="resumen"></tbody>
@@ -1520,93 +1528,14 @@ function mostrarAusentes(
 // RESUMEN POR GRADO Y SECCIÓN
 // ========================================================
 
-function mostrarResumen() {
+function mostrarResumen(
+  fecha,
+  gradoFiltro,
+  seccionFiltro
+) {
 
-  const hoyISO = new Date().toLocaleDateString('sv-SE');
+  const resumen = {};
 
-  const res = {};
-
-  // Crear grupos a partir de la lista de alumnos
-  alumnos.forEach(a => {
-
-    const key = `${a.grado}-${a.seccion}`;
-
-    if (!res[key]) {
-      res[key] = {
-        total: 0,
-        presentes: new Set(),
-        tardes: new Set()
-      };
-    }
-
-    res[key].total++;
-  });
-
-  // Analizar las asistencias de hoy
-  registros.forEach(r => {
-
-    if (obtenerFechaLocalISO(r.fecha) !== hoyISO) {
-      return;
-    }
-
-    const key = `${r.grado}-${r.seccion}`;
-
-    if (!res[key]) {
-      return;
-    }
-
-    const id = String(r.id).trim();
-
-    // Es presente
-    res[key].presentes.add(id);
-
-    // Es tarde
-    if (estadoRegistro(r) === "TARDE") {
-      res[key].tardes.add(id);
-    }
-
-  });
-
-  const t = document.getElementById("resumen");
-
-  t.innerHTML = "";
-
-  Object.keys(res).sort().forEach(k => {
-
-    const item = res[k];
-
-    const total = item.total;
-
-    const presentes = item.presentes.size;
-
-    const tardes = item.tardes.size;
-
-    const ausentes = Math.max(
-      0,
-      total - presentes
-    );
-
-    const porcentaje = total > 0
-      ? ((presentes / total) * 100).toFixed(1)
-      : "0.0";
-
-    const partes = k.split("-");
-
-    t.innerHTML += `
-      <tr>
-        <td>${partes[0]}</td>
-        <td>${partes[1]}</td>
-        <td>${total}</td>
-        <td>${presentes}</td>
-        <td class="tarde">${tardes}</td>
-        <td>${ausentes}</td>
-        <td>${porcentaje}%</td>
-      </tr>
-    `;
-
-  });
-
-}
 
   // ------------------------------------------------------
   // TOTAL DE ALUMNOS
