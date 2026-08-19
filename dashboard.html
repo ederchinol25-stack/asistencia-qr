@@ -3,186 +3,300 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control de Asistencia QR</title>
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <title>Dashboard Asistencia Escolar</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #e3f2fd;
-      padding: 20px;
-      min-height: 100vh;
-    }
-    h2 { color: #1565c0; margin-bottom: 16px; font-size: 20px; }
-    #reader {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto 20px auto;
-      background: white;
-      padding: 10px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    #resultado {
-      max-width: 400px;
-      margin: 0 auto;
-      padding: 18px;
-      background: white;
-      border-radius: 12px;
-      font-size: 18px;
-      font-weight: bold;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      transition: background 0.3s;
-      min-height: 70px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-    }
-    #resultado .nombre { font-size: 18px; }
-    #resultado .detalle { font-size: 14px; font-weight: normal; color: #555; }
-    #hora {
-      max-width: 400px;
-      margin: 10px auto 0 auto;
-      font-size: 13px;
-      color: #666;
-    }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+    h1, h2 { text-align: center; color: #1565c0; margin-bottom: 15px; }
+    
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
+    .card { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center; }
+    .card h2 { margin: 5px 0 0 0; color: #1565c0; font-size: 28px; }
+    .card p { margin: 0; color: #666; font-size: 13px; }
+
+    .filtros, .panel { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); margin-top: 15px; }
+    .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+    
+    select, input, button { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    button { background: #1565c0; color: white; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0d47a1; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th { background: #1565c0; color: #fff; padding: 10px; text-align: left; }
+    td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+
+    .puntual { color: #2e7d32; font-weight: bold; }
+    .tarde { color: #d97706; font-weight: bold; }
+    .ausente { color: #c62828; font-weight: bold; }
+    
+    #loading { text-align: center; font-weight: bold; color: #1565c0; padding: 20px; }
   </style>
 </head>
 <body>
 
-  <h2>📋 CONTROL DE ASISTENCIA QR</h2>
-  <div id="reader"></div>
-  <div id="resultado">📷 Esperando QR...</div>
-  <div id="hora"></div>
+  <h1>📊 Dashboard de Asistencia Escolar</h1>
+
+  <div id="loading">⏳ Cargando datos desde Google Sheets...</div>
+
+  <div class="cards">
+    <div class="card"><h2 id="total">0</h2><p>Total Asistencias</p></div>
+    <div class="card"><h2 id="presentes">0</h2><p>Presentes Hoy</p></div>
+    <div class="card"><h2 id="ausentesTotal">0</h2><p>Ausentes Hoy</p></div>
+    <div class="card"><h2 id="puntuales">0</h2><p>Puntuales</p></div>
+    <div class="card"><h2 id="tardes">0</h2><p>Tardes</p></div>
+    <div class="card"><h2 id="alumnos">0</h2><p>Total Alumnos</p></div>
+  </div>
+
+  <div class="filtros">
+    <input type="date" id="fecha">
+    <select id="grado">
+      <option value="">Todos los grados</option>
+      <option>1°</option><option>2°</option><option>3°</option><option>4°</option><option>5°</option>
+    </select>
+    <select id="seccion">
+      <option value="">Todas las secciones</option>
+      <option>A</option><option>B</option><option>C</option>
+    </select>
+    <select id="estado">
+      <option value="">Todos los estados</option>
+      <option value="PUNTUAL">🟢 Puntual</option>
+      <option value="TARDE">🟡 Tarde</option>
+      <option value="AUSENTE">❌ Ausente</option>
+    </select>
+    <button onclick="exportarExcel()">📥 Exportar Excel</button>
+  </div>
+
+  <div class="panel">
+    <h2>📋 Registros de Asistencia</h2>
+    <table id="tablaExport">
+      <thead>
+        <tr><th>Fecha</th><th>Hora</th><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th><th>Estado</th></tr>
+      </thead>
+      <tbody id="tabla"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>❌ Alumnos Ausentes de Hoy</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th></tr></thead>
+      <tbody id="ausentes"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>📊 Resumen por Grado y Sección</h2>
+    <table>
+      <thead><tr><th>Grado</th><th>Sección</th><th>Presentes</th><th>Ausentes</th><th>% Asistencia</th></tr></thead>
+      <tbody id="resumen"></tbody>
+    </table>
+  </div>
 
   <script>
-    const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
+    const API = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
+    let registros = [];
+    let alumnos = [];
 
-    // Bloqueo de IDs en proceso
-    const enProceso = new Set();
-    let audioCtx = null;
+    // Cargar datos al iniciar
+    fetch(API)
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById("loading").style.display = "none";
+        registros = data.asistencia || [];
+        alumnos = data.alumnos || [];
+        
+        actualizar();
+        document.querySelectorAll("select, input").forEach(x => x.addEventListener("change", actualizar));
+      })
+      .catch(err => {
+        document.getElementById("loading").innerText = "❌ Error al cargar los datos. Verifique su conexión.";
+        console.error(err);
+      });
 
-    // Inicializa el contexto de audio asegurando permisos del navegador
-    function obtenerAudioContext() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Extrae la hora limpia en formato HH:mm:ss
+    function obtenerHoraLimpia(horaRaw) {
+      if (!horaRaw) return "";
+      const str = String(horaRaw).trim();
+      if (str.includes("T")) {
+        const tPart = str.split("T")[1];
+        return tPart ? tPart.substring(0, 8) : "";
       }
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
-      return audioCtx;
+      return str.substring(0, 8);
     }
 
-    function beep() {
-      try {
-        const ctx = obtenerAudioContext();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); 
-        g.connect(ctx.destination);
-        o.frequency.value = 880; 
-        o.type = "sine";
-        g.gain.setValueAtTime(3, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        o.start(ctx.currentTime); 
-        o.stop(ctx.currentTime + 0.4);
-      } catch(e) {}
+    // Convierte cualquier formato de fecha a "YYYY-MM-DD" en tiempo local
+    function obtenerFechaLocalISO(fechaRaw) {
+      if (!fechaRaw) return "";
+      const d = new Date(fechaRaw);
+      if (isNaN(d.getTime())) return String(fechaRaw).substring(0, 10);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     }
 
-    function beepError() {
-      try {
-        const ctx = obtenerAudioContext();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); 
-        g.connect(ctx.destination);
-        o.frequency.value = 300; 
-        o.type = "sine";
-        g.gain.setValueAtTime(3, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-        o.start(ctx.currentTime); 
-        o.stop(ctx.currentTime + 0.5);
-      } catch(e) {}
+    // Determina si un alumno es PUNTUAL o TARDE (Hora límite: 08:10:00)
+    function estadoRegistro(r) {
+      const h = obtenerHoraLimpia(r.hora);
+      if (!h) return "PUNTUAL";
+      return h <= "08:10:00" ? "PUNTUAL" : "TARDE";
     }
 
-    function mostrar(icono, nombre, detalle, color) {
-      const r = document.getElementById("resultado");
-      r.innerHTML = `<div class="nombre">${icono} ${nombre}</div><div class="detalle">${detalle}</div>`;
-      r.style.background = color;
-      const ahora = new Date();
-      document.getElementById("hora").innerText =
-        ahora.toLocaleDateString("es-PE") + " " + ahora.toLocaleTimeString("es-PE");
-    }
+    function actualizar() {
+      const fechaFiltro = document.getElementById("fecha").value;
+      const gradoFiltro = document.getElementById("grado").value;
+      const seccionFiltro = document.getElementById("seccion").value;
+      const estadoFiltro = document.getElementById("estado").value;
 
-    function registrar(id) {
-      // Limpieza de caracteres de control e invisibles
-      id = id.toString().trim().replace(/[\r\n\t]/g, "").replace(/\s+/g, "");
+      let datos = [];
+      const hoyISO = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
 
-      if (!id) return;
+      if (estadoFiltro === "AUSENTE") {
+        const presentesSet = new Set(
+          registros
+            .filter(r => obtenerFechaLocalISO(r.fecha) === (fechaFiltro || hoyISO))
+            .map(r => String(r.id).trim())
+        );
 
-      // Bloqueo inmediato en el frontend
-      if (enProceso.has(id)) return;
-      enProceso.add(id);
+        datos = alumnos
+          .filter(a => !presentesSet.has(String(a.id).trim()))
+          .filter(a => {
+            if (gradoFiltro && String(a.grado) !== gradoFiltro) return false;
+            if (seccionFiltro && String(a.seccion) !== seccionFiltro) return false;
+            return true;
+          })
+          .map(a => ({
+            fecha: fechaFiltro || hoyISO,
+            hora: "--:--:--",
+            id: a.id,
+            nombre: a.nombre,
+            grado: a.grado,
+            seccion: a.seccion,
+            estado: "AUSENTE"
+          }));
 
-      mostrar("⏳", "Registrando...", id, "#fff9c4");
-
-      fetch(WEBAPP + "?id=" + encodeURIComponent(id))
-        .then(r => r.text())
-        .then(resp => {
-          resp = resp.trim();
-          const partes = resp.split(":");
-          const estado = partes[0];
-          const nombre = partes[1] || id;
-          const grado = partes[2] || "";
-          const seccion = partes[3] || "";
-          const detalle = grado ? `${grado} — Sección ${seccion}` : "";
-
-          if (estado === "REGISTRADO") {
-            mostrar("✅", nombre, detalle, "#c8e6c9");
-            beep();
-          } else if (estado === "YA_REGISTRADO") {
-            mostrar("⚠️", nombre, "Ya registrado hoy — " + detalle, "#fff3e0");
-            beepError();
-          } else if (estado === "NO_ENCONTRADO") {
-            mostrar("❌", "No encontrado", id, "#ffcdd2");
-            beepError();
-          } else if (estado === "SISTEMA_OCUPADO") {
-            mostrar("⏳", "Sistema ocupado", "Reintentando, espere un segundo...", "#fff9c4");
-            beepError();
-          } else {
-            mostrar("❌", "Error de respuesta", resp, "#ffcdd2");
-            beepError();
-          }
-        })
-        .catch(() => {
-          mostrar("❌", "Error de conexión", "Verifique su red", "#ffcdd2");
-          beepError();
-        })
-        .finally(() => {
-          // Cooldown de 5 segundos antes de permitir escaneo repetido del mismo ID
-          setTimeout(() => enProceso.delete(id), 5000);
+      } else {
+        datos = registros.filter(r => {
+          if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
+          if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
+          if (fechaFiltro && obtenerFechaLocalISO(r.fecha) !== fechaFiltro) return false;
+          if (estadoFiltro && estadoRegistro(r) !== estadoFiltro) return false;
+          return true;
         });
+      }
+
+      mostrarTabla(datos);
+      estadisticas(fechaFiltro);
+      mostrarAusentes();
+      mostrarResumen();
     }
 
-    function onScanSuccess(decodedText) {
-      registrar(decodedText);
+    function mostrarTabla(datos) {
+      const t = document.getElementById("tabla");
+      t.innerHTML = "";
+      
+      datos.forEach(r => {
+        const est = r.estado || estadoRegistro(r);
+        const horaMostrar = obtenerHoraLimpia(r.hora) || r.hora || "--:--:--";
+        const fechaMostrar = obtenerFechaLocalISO(r.fecha);
+
+        t.innerHTML += `<tr>
+          <td>${fechaMostrar}</td>
+          <td>${horaMostrar}</td>
+          <td>${r.id}</td>
+          <td>${r.nombre}</td>
+          <td>${r.grado}</td>
+          <td>${r.seccion}</td>
+          <td class="${est === 'PUNTUAL' ? 'puntual' : est === 'TARDE' ? 'tarde' : 'ausente'}">${est}</td>
+        </tr>`;
+      });
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-      // Activa audio en la primera interacción táctil si el navegador bloquea autoplay
-      document.body.addEventListener("click", obtenerAudioContext, { once: true });
-
-      const scanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 5, qrbox: 250 },
-        false
+    function estadisticas(fechaFiltro) {
+      const hoyISO = fechaFiltro || new Date().toLocaleDateString('sv-SE');
+      
+      const presentesSet = new Set(
+        registros
+          .filter(r => obtenerFechaLocalISO(r.fecha) === hoyISO)
+          .map(r => String(r.id).trim())
       );
-      scanner.render(onScanSuccess);
-    });
-  </script>
+      
+      const totalPresentesHoy = presentesSet.size;
 
+      document.getElementById("total").innerText = registros.length;
+      document.getElementById("alumnos").innerText = alumnos.length;
+      document.getElementById("presentes").innerText = totalPresentesHoy;
+      document.getElementById("ausentesTotal").innerText = Math.max(0, alumnos.length - totalPresentesHoy);
+
+      const puntualesCount = registros.filter(r => estadoRegistro(r) === 'PUNTUAL').length;
+      document.getElementById("puntuales").innerText = puntualesCount;
+      document.getElementById("tardes").innerText = registros.length - puntualesCount;
+    }
+
+    function mostrarAusentes() {
+      const hoyISO = new Date().toLocaleDateString('sv-SE');
+      const presentesSet = new Set(
+        registros
+          .filter(r => obtenerFechaLocalISO(r.fecha) === hoyISO)
+          .map(r => String(r.id).trim())
+      );
+      
+      const listaAusentes = alumnos.filter(a => !presentesSet.has(String(a.id).trim()));
+      const t = document.getElementById("ausentes");
+      t.innerHTML = "";
+      
+      listaAusentes.forEach(a => {
+        t.innerHTML += `<tr>
+          <td>${a.id}</td>
+          <td>${a.nombre}</td>
+          <td>${a.grado}</td>
+          <td>${a.seccion}</td>
+        </tr>`;
+      });
+    }
+
+    function mostrarResumen() {
+      const hoyISO = new Date().toLocaleDateString('sv-SE');
+      const res = {};
+
+      alumnos.forEach(a => {
+        const key = `${a.grado}-${a.seccion}`;
+        if (!res[key]) res[key] = { total: 0, presentes: new Set() };
+        res[key].total++;
+      });
+
+      registros.forEach(r => {
+        if (obtenerFechaLocalISO(r.fecha) !== hoyISO) return;
+        const key = `${r.grado}-${r.seccion}`;
+        if (res[key]) res[key].presentes.add(String(r.id).trim());
+      });
+
+      const t = document.getElementById("resumen");
+      t.innerHTML = '';
+      
+      Object.keys(res).sort().forEach(k => {
+        const item = res[k];
+        const pre = item.presentes.size;
+        const aus = Math.max(0, item.total - pre);
+        const porcentaje = item.total > 0 ? ((pre / item.total) * 100).toFixed(1) : 0;
+        const partes = k.split('-');
+
+        t.innerHTML += `<tr>
+          <td>${partes[0]}</td>
+          <td>${partes[1]}</td>
+          <td>${pre}</td>
+          <td>${aus}</td>
+          <td>${porcentaje}%</td>
+        </tr>`;
+      });
+    }
+
+    function exportarExcel() {
+      const wb = XLSX.utils.table_to_book(document.getElementById("tablaExport"));
+      XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
+    }
+  </script>
 </body>
 </html>
