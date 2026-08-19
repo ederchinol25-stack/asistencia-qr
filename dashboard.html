@@ -3,405 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Asistencia Escolar</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <title>Control de Asistencia QR</title>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
-    h1, h2 { text-align: center; color: #1565c0; margin-bottom: 15px; }
-    
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
-    .card { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center; }
-    .card h2 { margin: 5px 0 0 0; color: #1565c0; font-size: 28px; }
-    .card p { margin: 0; color: #666; font-size: 13px; font-weight: bold; }
-
-    .filtros, .panel { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); margin-top: 15px; }
-    .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
-    
-    select, input, button { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-    button { background: #1565c0; color: white; border: none; cursor: pointer; font-weight: bold; }
-    button:hover { background: #0d47a1; }
-
-    label.chk { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #1565c0; cursor: pointer; }
-    label.chk input { width: 18px; height: 18px; cursor: pointer; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-    th { background: #1565c0; color: #fff; padding: 10px; text-align: left; }
-    td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-
-    .puntual { color: #2e7d32; font-weight: bold; }
-    .tarde { color: #d97706; font-weight: bold; }
-    .ausente { color: #c62828; font-weight: bold; }
-    
-    #loading { text-align: center; font-weight: bold; color: #1565c0; padding: 20px; }
-    #avisoTodas { text-align: center; color: #d97706; font-size: 13px; font-weight: bold; margin-top: 8px; display: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #e3f2fd;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h2 { color: #1565c0; margin-bottom: 16px; font-size: 20px; }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 20px auto;
+      background: white;
+      padding: 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    #resultado {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 18px;
+      background: white;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: background 0.3s;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    #resultado .nombre { font-size: 18px; }
+    #resultado .detalle { font-size: 14px; font-weight: normal; color: #555; }
+    #hora {
+      max-width: 400px;
+      margin: 10px auto 0 auto;
+      font-size: 13px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
 
-  <h1>📊ASISTENCIA ESCOLAR I.E. SANTA RITA DE SIGUAS</h1>
-
-  <div id="loading">⏳ Cargando datos desde Google Sheets...</div>
-
-  <div class="cards">
-    <div class="card"><h2 id="alumnos">0</h2><p>Total Alumnos</p></div>
-    <div class="card"><h2 id="presentes">0</h2><p>Presentes</p></div>
-    <div class="card"><h2 id="ausentesTotal">0</h2><p>Ausentes</p></div>
-    <div class="card"><h2 id="puntuales">0</h2><p>Puntuales</p></div>
-    <div class="card"><h2 id="tardes">0</h2><p>Tardes</p></div>
-    <div class="card"><h2 id="total">0</h2><p>Registros en Fecha</p></div>
-  </div>
-
-  <div class="filtros">
-    <input type="date" id="fecha">
-    <select id="grado">
-      <option value="">Todos los grados</option>
-      <option>1°</option><option>2°</option><option>3°</option><option>4°</option><option>5°</option>
-    </select>
-    <select id="seccion">
-      <option value="">Todas las secciones</option>
-      <option>A</option><option>B</option><option>C</option>
-    </select>
-    <select id="estado">
-      <option value="">Todos los estados</option>
-      <option value="PUNTUAL">🟢 Puntual</option>
-      <option value="TARDE">🟡 Tarde</option>
-      <option value="AUSENTE">❌ Ausente</option>
-    </select>
-    <label class="chk">
-      <input type="checkbox" id="verTodas">
-      Ver todas las fechas
-    </label>
-    <button onclick="exportarExcel()">📥 Exportar Excel</button>
-  </div>
-  <div id="avisoTodas">ℹ️ Mostrando el historial completo. Las tarjetas de arriba siguen resumiendo solo la fecha seleccionada.</div>
-
-  <div class="panel">
-    <h2>📋 Registros de Asistencia</h2>
-    <table id="tablaExport">
-      <thead>
-        <tr><th>Fecha</th><th>Hora</th><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th><th>Estado</th></tr>
-      </thead>
-      <tbody id="tabla"></tbody>
-    </table>
-  </div>
-
-  <div class="panel">
-    <h2 id="tituloAusentes">❌ Alumnos Ausentes</h2>
-    <table>
-      <thead><tr><th>ID</th><th>Nombre</th><th>Grado</th><th>Sección</th></tr></thead>
-      <tbody id="ausentes"></tbody>
-    </table>
-  </div>
-
-  <div class="panel">
-    <h2 id="tituloResumen">📊 Resumen por Grado y Sección</h2>
-    <table>
-      <thead><tr><th>Grado</th><th>Sección</th><th>Total Alumnos</th><th>Presentes</th><th>Tardes</th><th>Ausentes</th><th>% Asistencia</th></tr></thead>
-      <tbody id="resumen"></tbody>
-    </table>
-  </div>
+  <h2>📋 CONTROL DE ASISTENCIA QR</h2>
+  <div id="reader"></div>
+  <div id="resultado">📷 Esperando QR...</div>
+  <div id="hora"></div>
 
   <script>
-    const API = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
-    let registros = [];
-    let alumnos = [];
+    const WEBAPP = "https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec";
 
-    // Cargar datos al iniciar
-    fetch(API)
-      .then(r => r.json())
-      .then(data => {
-        document.getElementById("loading").style.display = "none";
-        registros = data.asistencia || [];
-        alumnos = data.alumnos || [];
-        
-        // Asignar fecha de hoy por defecto al selector
-        const hoyISO = new Date().toLocaleDateString('sv-SE');
-        document.getElementById("fecha").value = hoyISO;
+    // Bloqueo de IDs en proceso
+    const enProceso = new Set();
+    let audioCtx = null;
 
-        actualizar();
-        document.querySelectorAll("select, input").forEach(x => x.addEventListener("change", actualizar));
-      })
-      .catch(err => {
-        document.getElementById("loading").innerText = "❌ Error al cargar los datos. Verifique su conexión.";
-        console.error(err);
-      });
-
-    function normalizarFecha(fechaRaw) {
-      if (!fechaRaw) return "";
-      let str = String(fechaRaw).trim();
-      
-      if (str.includes("T")) {
-        str = str.split("T")[0];
+    // Inicializa el contexto de audio asegurando permisos del navegador
+    function obtenerAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-
-      // Si viene con hora pegada ("24/06/2026 15:12:28" o "2026-08-18 21:47:34")
-      if (str.includes(" ")) {
-        str = str.split(" ")[0];
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
       }
-      
-      if (str.includes("/")) {
-        const partes = str.split("/");
-        if (partes.length === 3) {
-          if (partes[0].length === 4) {
-            return `${partes[0]}-${partes[1].padStart(2, '0')}-${partes[2].padStart(2, '0')}`;
+      return audioCtx;
+    }
+
+    function beep() {
+      try {
+        const ctx = obtenerAudioContext();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); 
+        g.connect(ctx.destination);
+        o.frequency.value = 880; 
+        o.type = "sine";
+        g.gain.setValueAtTime(3, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        o.start(ctx.currentTime); 
+        o.stop(ctx.currentTime + 0.4);
+      } catch(e) {}
+    }
+
+    function beepError() {
+      try {
+        const ctx = obtenerAudioContext();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); 
+        g.connect(ctx.destination);
+        o.frequency.value = 300; 
+        o.type = "sine";
+        g.gain.setValueAtTime(3, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        o.start(ctx.currentTime); 
+        o.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
+
+    function mostrar(icono, nombre, detalle, color) {
+      const r = document.getElementById("resultado");
+      r.innerHTML = `<div class="nombre">${icono} ${nombre}</div><div class="detalle">${detalle}</div>`;
+      r.style.background = color;
+      const ahora = new Date();
+      document.getElementById("hora").innerText =
+        ahora.toLocaleDateString("es-PE") + " " + ahora.toLocaleTimeString("es-PE");
+    }
+
+    function registrar(id) {
+      // Limpieza de caracteres de control e invisibles
+      id = id.toString().trim().replace(/[\r\n\t]/g, "").replace(/\s+/g, "");
+
+      if (!id) return;
+
+      // Bloqueo inmediato en el frontend
+      if (enProceso.has(id)) return;
+      enProceso.add(id);
+
+      mostrar("⏳", "Registrando...", id, "#fff9c4");
+
+      fetch(WEBAPP + "?id=" + encodeURIComponent(id))
+        .then(r => r.text())
+        .then(resp => {
+          resp = resp.trim();
+          const partes = resp.split(":");
+          const estado = partes[0];
+          const nombre = partes[1] || id;
+          const grado = partes[2] || "";
+          const seccion = partes[3] || "";
+          const detalle = grado ? `${grado} — Sección ${seccion}` : "";
+
+          if (estado === "REGISTRADO") {
+            mostrar("✅", nombre, detalle, "#c8e6c9");
+            beep();
+          } else if (estado === "YA_REGISTRADO") {
+            mostrar("⚠️", nombre, "Ya registrado hoy — " + detalle, "#fff3e0");
+            beepError();
+          } else if (estado === "NO_ENCONTRADO") {
+            mostrar("❌", "No encontrado", id, "#ffcdd2");
+            beepError();
+          } else if (estado === "SISTEMA_OCUPADO") {
+            mostrar("⏳", "Sistema ocupado", "Reintentando, espere un segundo...", "#fff9c4");
+            beepError();
+          } else {
+            mostrar("❌", "Error de respuesta", resp, "#ffcdd2");
+            beepError();
           }
-          const dia = partes[0].padStart(2, '0');
-          const mes = partes[1].padStart(2, '0');
-          const anio = partes[2];
-          return `${anio}-${mes}-${dia}`;
-        }
-      }
-      
-      if (str.length >= 10 && str.match(/^\d{4}-\d{2}-\d{2}/)) {
-        return str.substring(0, 10);
-      }
-      
-      const d = new Date(fechaRaw);
-      if (!isNaN(d.getTime())) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-      }
-      
-      return str.substring(0, 10);
+        })
+        .catch(() => {
+          mostrar("❌", "Error de conexión", "Verifique su red", "#ffcdd2");
+          beepError();
+        })
+        .finally(() => {
+          // Cooldown de 5 segundos antes de permitir escaneo repetido del mismo ID
+          setTimeout(() => enProceso.delete(id), 5000);
+        });
     }
 
-    function obtenerHoraLimpia(horaRaw) {
-      if (!horaRaw) return "";
-      const str = String(horaRaw).trim();
-
-      // Si ya viene en formato HH:mm:ss puro, úsalo directamente
-      const m = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-      if (m) {
-        return m[1].padStart(2, '0') + ":" + m[2] + ":" + (m[3] || "00");
-      }
-      
-      const d = new Date(horaRaw);
-      if (!isNaN(d.getTime()) && str.includes("T")) {
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        return `${hh}:${mm}:${ss}`;
-      }
-      
-      return str.substring(0, 8);
+    function onScanSuccess(decodedText) {
+      registrar(decodedText);
     }
 
-    function estadoRegistro(r) {
-      const h = obtenerHoraLimpia(r.hora);
-      if (!h) return "PUNTUAL";
-      return h <= "08:10:00" ? "PUNTUAL" : "TARDE";
-    }
+    document.addEventListener("DOMContentLoaded", function () {
+      // Activa audio en la primera interacción táctil si el navegador bloquea autoplay
+      document.body.addEventListener("click", obtenerAudioContext, { once: true });
 
-    function actualizar() {
-      const verTodas = document.getElementById("verTodas").checked;
-      document.getElementById("fecha").disabled = verTodas;
-      document.getElementById("avisoTodas").style.display = verTodas ? "block" : "none";
-
-      const fechaFiltro = document.getElementById("fecha").value;
-      const gradoFiltro = document.getElementById("grado").value;
-      const seccionFiltro = document.getElementById("seccion").value;
-      const estadoFiltro = document.getElementById("estado").value;
-
-      const hoyISO = new Date().toLocaleDateString('sv-SE');
-      const fechaObjetivo = fechaFiltro || hoyISO;
-
-      // 1. Alumnos filtrados según selección de Grado y Sección
-      const alumnosFiltrados = alumnos.filter(a => {
-        if (gradoFiltro && String(a.grado) !== gradoFiltro) return false;
-        if (seccionFiltro && String(a.seccion) !== seccionFiltro) return false;
-        return true;
-      });
-
-      const idsAlumnosValidos = new Set(alumnosFiltrados.map(a => String(a.id).trim()));
-
-      // 2. Registros de asistencia de la fecha objetivo y del grupo seleccionado
-      // (las tarjetas de arriba SIEMPRE resumen un solo día, aunque "verTodas" esté activo)
-      const registrosFechaGrupo = registros.filter(r => {
-        if (normalizarFecha(r.fecha) !== fechaObjetivo) return false;
-        if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
-        if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
-        return true;
-      });
-
-      // Presentes en esa fecha (IDs únicos)
-      const presentesSet = new Set(
-        registrosFechaGrupo
-          .map(r => String(r.id).trim())
-          .filter(id => idsAlumnosValidos.has(id))
+      const scanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 5, qrbox: 250 },
+        false
       );
-
-      const totalAlumnosCount = alumnosFiltrados.length;
-      const totalPresentesCount = presentesSet.size;
-      const totalAusentesCount = Math.max(0, totalAlumnosCount - totalPresentesCount);
-
-      const totalPuntualesCount = registrosFechaGrupo.filter(r => 
-        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'PUNTUAL'
-      ).length;
-
-      const totalTardesCount = registrosFechaGrupo.filter(r => 
-        idsAlumnosValidos.has(String(r.id).trim()) && estadoRegistro(r) === 'TARDE'
-      ).length;
-
-      // Actualizar Tarjetas superiores
-      document.getElementById("alumnos").innerText = totalAlumnosCount;
-      document.getElementById("presentes").innerText = totalPresentesCount;
-      document.getElementById("ausentesTotal").innerText = totalAusentesCount;
-      document.getElementById("puntuales").innerText = totalPuntualesCount;
-      document.getElementById("tardes").innerText = totalTardesCount;
-      document.getElementById("total").innerText = registrosFechaGrupo.length;
-
-      // 3. Generar Tabla Principal
-      let datosTabla = [];
-      if (verTodas) {
-        // Modo "todas las fechas": no filtrar por fecha, mostrar todo el historial
-        datosTabla = registros.filter(r => {
-          if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
-          if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
-          if (estadoFiltro && estadoRegistro(r) !== estadoFiltro) return false;
-          return true;
-        });
-        // Ordenar del más reciente al más antiguo
-        datosTabla.sort((a, b) => {
-          const claveA = normalizarFecha(a.fecha) + " " + obtenerHoraLimpia(a.hora);
-          const claveB = normalizarFecha(b.fecha) + " " + obtenerHoraLimpia(b.hora);
-          return claveB.localeCompare(claveA);
-        });
-      } else if (estadoFiltro === "AUSENTE") {
-        datosTabla = alumnosFiltrados
-          .filter(a => !presentesSet.has(String(a.id).trim()))
-          .map(a => ({
-            fecha: fechaObjetivo,
-            hora: "--:--:--",
-            id: a.id,
-            nombre: a.nombre,
-            grado: a.grado,
-            seccion: a.seccion,
-            estado: "AUSENTE"
-          }));
-      } else {
-        datosTabla = registros.filter(r => {
-          if (normalizarFecha(r.fecha) !== fechaObjetivo) return false;
-          if (gradoFiltro && String(r.grado) !== gradoFiltro) return false;
-          if (seccionFiltro && String(r.seccion) !== seccionFiltro) return false;
-          if (estadoFiltro && estadoRegistro(r) !== estadoFiltro) return false;
-          return true;
-        });
-      }
-
-      mostrarTabla(datosTabla);
-      mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet);
-      mostrarResumen(fechaObjetivo, gradoFiltro, seccionFiltro);
-    }
-
-    function mostrarTabla(datos) {
-      const t = document.getElementById("tabla");
-      t.innerHTML = "";
-      
-      datos.forEach(r => {
-        const est = r.estado || estadoRegistro(r);
-        const horaMostrar = obtenerHoraLimpia(r.hora) || r.hora || "--:--:--";
-        const fechaMostrar = normalizarFecha(r.fecha);
-
-        t.innerHTML += `<tr>
-          <td>${fechaMostrar}</td>
-          <td>${horaMostrar}</td>
-          <td>${r.id}</td>
-          <td>${r.nombre}</td>
-          <td>${r.grado}</td>
-          <td>${r.seccion}</td>
-          <td class="${est === 'PUNTUAL' ? 'puntual' : est === 'TARDE' ? 'tarde' : 'ausente'}">${est}</td>
-        </tr>`;
-      });
-    }
-
-    function mostrarAusentes(fechaObjetivo, alumnosFiltrados, presentesSet) {
-      document.getElementById("tituloAusentes").innerText = `❌ Alumnos Ausentes (${fechaObjetivo})`;
-      const listaAusentes = alumnosFiltrados.filter(a => !presentesSet.has(String(a.id).trim()));
-      const t = document.getElementById("ausentes");
-      t.innerHTML = "";
-      
-      if (listaAusentes.length === 0) {
-        t.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#2e7d32; font-weight:bold;">🎉 ¡Sin ausentes registrados para esta fecha y grupo!</td></tr>`;
-        return;
-      }
-
-      listaAusentes.forEach(a => {
-        t.innerHTML += `<tr>
-          <td>${a.id}</td>
-          <td>${a.nombre}</td>
-          <td>${a.grado}</td>
-          <td>${a.seccion}</td>
-        </tr>`;
-      });
-    }
-
-    function mostrarResumen(fechaObjetivo, gradoFiltro, seccionFiltro) {
-      document.getElementById("tituloResumen").innerText = `📊 Resumen por Grado y Sección (${fechaObjetivo})`;
-      
-      const res = {};
-
-      // 1. Agrupar la matrícula total de alumnos por Grado-Sección
-      alumnos.forEach(a => {
-        if (gradoFiltro && String(a.grado) !== gradoFiltro) return;
-        if (seccionFiltro && String(a.seccion) !== seccionFiltro) return;
-        
-        const key = `${a.grado}-${a.seccion}`;
-        if (!res[key]) res[key] = { total: 0, presentes: new Set(), tardes: new Set() };
-        res[key].total++;
-      });
-
-      // 2. Registrar los alumnos que asistieron EN LA FECHA SELECCIONADA
-      registros.forEach(r => {
-        if (normalizarFecha(r.fecha) !== fechaObjetivo) return;
-        if (gradoFiltro && String(r.grado) !== gradoFiltro) return;
-        if (seccionFiltro && String(r.seccion) !== seccionFiltro) return;
-
-        const key = `${r.grado}-${r.seccion}`;
-        if (res[key]) {
-          res[key].presentes.add(String(r.id).trim());
-          if (estadoRegistro(r) === "TARDE") {
-            res[key].tardes.add(String(r.id).trim());
-          }
-        }
-      });
-
-      const t = document.getElementById("resumen");
-      t.innerHTML = '';
-      
-      const llaves = Object.keys(res).sort();
-      if (llaves.length === 0) {
-        t.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#666;">No hay datos para la combinación seleccionada.</td></tr>`;
-        return;
-      }
-
-      llaves.forEach(k => {
-        const item = res[k];
-        const pre = item.presentes.size;
-        const tar = item.tardes.size;
-        const aus = Math.max(0, item.total - pre);
-        const porcentaje = item.total > 0 ? ((pre / item.total) * 100).toFixed(1) : 0;
-        const partes = k.split('-');
-
-        t.innerHTML += `<tr>
-          <td>${partes[0]}</td>
-          <td>${partes[1]}</td>
-          <td><strong>${item.total}</strong></td>
-          <td class="puntual">${pre}</td>
-          <td class="tarde">${tar}</td>
-          <td class="ausente">${aus}</td>
-          <td><strong>${porcentaje}%</strong></td>
-        </tr>`;
-      });
-    }
-
-    function exportarExcel() {
-      const wb = XLSX.utils.table_to_book(document.getElementById("tablaExport"));
-      XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
-    }
+      scanner.render(onScanSuccess);
+    });
   </script>
+
 </body>
 </html>
