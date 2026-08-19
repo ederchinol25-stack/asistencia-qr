@@ -126,22 +126,42 @@
       return str.substring(0, 8);
     }
 
-    // Convierte cualquier formato de fecha a "YYYY-MM-DD" en tiempo local
+    // Convierte cualquier formato de fecha a "YYYY-MM-DD" en tiempo local corrigiendo el bug de fechas
     function obtenerFechaLocalISO(fechaRaw) {
       if (!fechaRaw) return "";
+      const str = String(fechaRaw).trim();
+
+      if (str.includes("/")) {
+        const partes = str.split("/");
+        if (partes.length === 3) {
+          const dd = partes[0].padStart(2, '0');
+          const mm = partes[1].padStart(2, '0');
+          const yyyy = partes[2];
+          return `${yyyy}-${mm}-${dd}`;
+        }
+      }
+
       const d = new Date(fechaRaw);
-      if (isNaN(d.getTime())) return String(fechaRaw).substring(0, 10);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      return str.substring(0, 10);
     }
 
-    // Determina si un alumno es PUNTUAL o TARDE (Hora límite: 08:10:00)
+    // Determina si un alumno es PUNTUAL o TARDE (Hora límite: 08:00:00)
     function estadoRegistro(r) {
       const h = obtenerHoraLimpia(r.hora);
-      if (!h) return "PUNTUAL";
-      return h <= "08:10:00" ? "PUNTUAL" : "TARDE";
+      if (!h || h === "--:--:--") return "PUNTUAL";
+      
+      if (h <= "08:00:00") {
+        return "PUNTUAL";
+      } else {
+        return "TARDE";
+      }
     }
 
     function actualizar() {
@@ -151,7 +171,7 @@
       const estadoFiltro = document.getElementById("estado").value;
 
       let datos = [];
-      const hoyISO = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
+      const hoyISO = new Date().toLocaleDateString('sv-SE'); 
 
       if (estadoFiltro === "AUSENTE") {
         const presentesSet = new Set(
@@ -297,6 +317,18 @@
       const wb = XLSX.utils.table_to_book(document.getElementById("tablaExport"));
       XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
     }
+    
+    // Auto-refresco opcional cada 30 segundos
+    setInterval(() => {
+      fetch(API)
+        .then(r => r.json())
+        .then(data => {
+          registros = data.asistencia || [];
+          alumnos = data.alumnos || [];
+          actualizar();
+        })
+        .catch(err => console.error("Error al refrescar:", err));
+    }, 30000);
   </script>
 </body>
 </html>
