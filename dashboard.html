@@ -846,41 +846,12 @@ function obtenerFechaLocalISO(valor) {
 // HORA
 // ========================================================
 
-function obtenerHoraLimpia(valor) {
 
-  if (!valor) return "";
+function obtenerHoraLimpia(horaRaw) {
+  if (!horaRaw) return "";
 
-
-  const texto =
-    String(valor).trim();
-
-
-  const match =
-    texto.match(
-      /(\d{2}):(\d{2}):(\d{2})/
-    );
-
-
-  if (match) {
-
-    return (
-      match[1] +
-      ":" +
-      match[2] +
-      ":" +
-      match[3]
-    );
-
-  }
-
-
-  return texto.substring(
-    0,
-    8
-  );
-
+  return String(horaRaw).trim();
 }
-
 
 // ========================================================
 // ESTADO
