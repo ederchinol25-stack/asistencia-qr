@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Dashboard de Asistencia Escolar</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+
+  font-family: Arial, sans-serif;
+
+  background: #f4f6f9;
+
+  margin: 0;
+
+  padding: 20px;
+
+  color: #333;
+
+}
+
+h1,
+h2 {
+
+  text-align: center;
+
+  color: #1565c0;
+
+  margin-bottom: 15px;
+
+}
+
+
+/* =====================================================
+   TARJETAS
+   ===================================================== */
+
+.cards {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(160px, 1fr));
+
+  gap: 15px;
+
+}
+
+.card {
+
+  background: white;
+
+  padding: 15px;
+
+  border-radius: 10px;
+
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.10);
+
+  text-align: center;
+
+}
+
+.card h2 {
+
+  margin: 5px 0 0;
+
+  color: #1565c0;
+
+  font-size: 28px;
+
+}
+
+.card p {
+
+  margin: 0;
+
+  color: #666;
+
+  font-size: 13px;
+
+}
+
+
+/* =====================================================
+   FILTROS
+   ===================================================== */
+
+.filtros {
+
+  background: white;
+
+  padding: 15px;
+
+  border-radius: 10px;
+
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.10);
+
+  margin-top: 15px;
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 10px;
+
+  align-items: center;
+
+  justify-content: center;
+
+}
+
+select,
+input,
+button {
+
+  padding: 10px;
+
+  border: 1px solid #ccc;
+
+  border-radius: 6px;
+
+  font-size: 14px;
+
+}
+
+button {
+
+  background: #1565c0;
+
+  color: white;
+
+  border: none;
+
+  cursor: pointer;
+
+  font-weight: bold;
+
+}
+
+button:hover {
+
+  background: #0d47a1;
+
+}
+
+.btn-secundario {
+
+  background: #455a64;
+
+}
+
+.btn-secundario:hover {
+
+  background: #263238;
+
+}
+
+
+/* =====================================================
+   PANELES
+   ===================================================== */
+
+.panel {
+
+  background: white;
+
+  padding: 15px;
+
+  border-radius: 10px;
+
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.10);
+
+  margin-top: 15px;
+
+  overflow-x: auto;
+
+}
+
+
+/* =====================================================
+   TABLAS
+   ===================================================== */
+
+table {
+
+  width: 100%;
+
+  border-collapse: collapse;
+
+  margin-top: 10px;
+
+  font-size: 14px;
+
+}
+
+th {
+
+  background: #1565c0;
+
+  color: white;
+
+  padding: 10px;
+
+  text-align: left;
+
+  white-space: nowrap;
+
+}
+
+td {
+
+  padding: 8px 10px;
+
+  border-bottom:
+    1px solid #ddd;
+
+}
+
+tr:nth-child(even) {
+
+  background-color: #f9f9f9;
+
+}
+
+
+/* =====================================================
+   ESTADOS
+   ===================================================== */
+
+.puntual {
+
+  color: #2e7d32;
+
+  font-weight: bold;
+
+}
+
+.tarde {
+
+  color: #d97706;
+
+  font-weight: bold;
+
+}
+
+.ausente {
+
+  color: #c62828;
+
+  font-weight: bold;
+
+}
+
+
+/* =====================================================
+   MENSAJES
+   ===================================================== */
+
+#loading {
+
+  text-align: center;
+
+  font-weight: bold;
+
+  color: #1565c0;
+
+  padding: 20px;
+
+}
+
+#mensaje {
+
+  text-align: center;
+
+  margin-top: 10px;
+
+  font-weight: bold;
+
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 600px) {
+
+  body {
+
+    padding: 10px;
+
+  }
+
+  h1 {
+
+    font-size: 22px;
+
+  }
+
+  .cards {
+
+    grid-template-columns:
+      repeat(2, 1fr);
+
+  }
+
+  .card h2 {
+
+    font-size: 23px;
+
+  }
+
+  select,
+  input,
+  button {
+
+    width: 100%;
+
+  }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<h1>
+  📊 Dashboard de Asistencia Escolar
+</h1>
+
+
+<div id="loading">
+  ⏳ Cargando datos desde Google Sheets...
+</div>
+
+
+<div id="mensaje"></div>
+
+
+<!-- =====================================================
+     TARJETAS
+     ===================================================== -->
+
+<div class="cards">
+
+  <div class="card">
+
+    <h2 id="total">0</h2>
+
+    <p>Total de registros</p>
+
+  </div>
+
+
+  <div class="card">
+
+    <h2 id="presentes">0</h2>
+
+    <p>Presentes</p>
+
+  </div>
+
+
+  <div class="card">
+
+    <h2 id="ausentesTotal">0</h2>
+
+    <p>Ausentes</p>
+
+  </div>
+
+
+  <div class="card">
+
+    <h2 id="puntuales">0</h2>
+
+    <p>Puntuales</p>
+
+  </div>
+
+
+  <div class="card">
+
+    <h2 id="tardes">0</h2>
+
+    <p>Tardes</p>
+
+  </div>
+
+
+  <div class="card">
+
+    <h2 id="alumnos">0</h2>
+
+    <p>Total alumnos</p>
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     FILTROS
+     ===================================================== -->
+
+<div class="filtros">
+
+  <input
+    type="date"
+    id="fecha"
+  >
+
+
+  <select id="grado">
+
+    <option value="">
+      Todos los grados
+    </option>
+
+    <option value="1°">1°</option>
+
+    <option value="2°">2°</option>
+
+    <option value="3°">3°</option>
+
+    <option value="4°">4°</option>
+
+    <option value="5°">5°</option>
+
+  </select>
+
+
+  <select id="seccion">
+
+    <option value="">
+      Todas las secciones
+    </option>
+
+    <option value="A">A</option>
+
+    <option value="B">B</option>
+
+    <option value="C">C</option>
+
+  </select>
+
+
+  <select id="estado">
+
+    <option value="">
+      Todos los estados
+    </option>
+
+    <option value="PUNTUAL">
+      🟢 Puntual
+    </option>
+
+    <option value="TARDE">
+      🟡 Tarde
+    </option>
+
+    <option value="AUSENTE">
+      ❌ Ausente
+    </option>
+
+  </select>
+
+
+  <button onclick="actualizar()">
+    🔎 Filtrar
+  </button>
+
+
+  <button
+    class="btn-secundario"
+    onclick="cargarDatos()">
+
+    🔄 Actualizar
+
+  </button>
+
+
+  <button onclick="exportarExcel()">
+
+    📥 Exportar Excel
+
+  </button>
+
+</div>
+
+
+<!-- =====================================================
+     REGISTROS
+     ===================================================== -->
+
+<div class="panel">
+
+  <h2>
+    📋 Registros de Asistencia
+  </h2>
+
+
+  <table id="tablaExport">
+
+    <thead>
+
+      <tr>
+
+        <th>Fecha</th>
+
+        <th>Hora</th>
+
+        <th>ID</th>
+
+        <th>Nombre</th>
+
+        <th>Grado</th>
+
+        <th>Sección</th>
+
+        <th>Estado</th>
+
+      </tr>
+
+    </thead>
+
+
+    <tbody id="tabla"></tbody>
+
+  </table>
+
+</div>
+
+
+<!-- =====================================================
+     AUSENTES
+     ===================================================== -->
+
+<div class="panel">
+
+  <h2>
+    ❌ Alumnos Ausentes
+  </h2>
+
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>ID</th>
+
+        <th>Nombre</th>
+
+        <th>Grado</th>
+
+        <th>Sección</th>
+
+      </tr>
+
+    </thead>
+
+
+    <tbody id="ausentes"></tbody>
+
+  </table>
+
+</div>
+
+
+<!-- =====================================================
+     RESUMEN
+     ===================================================== -->
+
+<div class="panel">
+
+  <h2>
+    📊 Resumen por Grado y Sección
+  </h2>
+
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>Grado</th>
+
+        <th>Sección</th>
+
+        <th>Total</th>
+
+        <th>Presentes</th>
+
+        <th>Ausentes</th>
+
+        <th>% Asistencia</th>
+
+      </tr>
+
+    </thead>
+
+
+    <tbody id="resumen"></tbody>
+
+  </table>
+
+</div>
+
+
+<script>
+
+
+// ========================================================
+// URL DE TU GOOGLE APPS SCRIPT
+// ========================================================
+
+const API =
+"https://script.google.com/macros/s/AKfycbwjvq5ojBFJvbtuBHW6Ru2Nl1xEqPbHWXFL0b72zGMmOJWC7DNfoRMeRag_yKjXpgq16w/exec?accion=datos";
+
+
+// ========================================================
+// VARIABLES
+// ========================================================
+
+let registros = [];
+
+let alumnos = [];
+
+
+// ========================================================
+// CARGAR DATOS
+// ========================================================
+
+function cargarDatos() {
+
+  document.getElementById("loading").style.display =
+    "block";
+
+  document.getElementById("loading").innerText =
+    "⏳ Cargando datos...";
+
+
+  fetch(API + "&t=" + Date.now())
+
+    .then(response => {
+
+      if (!response.ok) {
+
+        throw new Error(
+          "Error HTTP " + response.status
+        );
+
+      }
+
+      return response.json();
+
+    })
+
+    .then(data => {
+
+      if (data.error) {
+
+        throw new Error(
+          data.mensaje || data.error
+        );
+
+      }
+
+
+      registros =
+        data.asistencia || [];
+
+      alumnos =
+        data.alumnos || [];
+
+
+      document.getElementById("loading")
+        .style.display = "none";
+
+
+      actualizar();
+
+    })
+
+    .catch(error => {
+
+      console.error(error);
+
+
+      document.getElementById("loading")
+        .style.display = "block";
+
+
+      document.getElementById("loading")
+        .innerText =
+        "❌ Error al cargar los datos.";
+
+
+      document.getElementById("mensaje")
+        .innerText =
+        error.message;
+
+    });
+
+}
+
+
+// ========================================================
+// FECHA ACTUAL LOCAL
+// ========================================================
+
+function fechaHoy() {
+
+  const ahora = new Date();
+
+  const yyyy =
+    ahora.getFullYear();
+
+  const mm =
+    String(
+      ahora.getMonth() + 1
+    ).padStart(2, "0");
+
+  const dd =
+    String(
+      ahora.getDate()
+    ).padStart(2, "0");
+
+
+  return `${yyyy}-${mm}-${dd}`;
+
+}
+
+
+// ========================================================
+// FECHA
+// ========================================================
+
+function obtenerFechaLocalISO(valor) {
+
+  if (!valor) return "";
+
+
+  const texto =
+    String(valor).trim();
+
+
+  // yyyy-MM-dd
+  if (
+    /^\d{4}-\d{2}-\d{2}$/
+      .test(texto)
+  ) {
+
+    return texto;
+
+  }
+
+
+  // yyyy-MM-dd HH:mm:ss
+  if (
+    /^\d{4}-\d{2}-\d{2}\s/
+      .test(texto)
+  ) {
+
+    return texto.substring(
+      0,
+      10
+    );
+
+  }
+
+
+  // dd/MM/yyyy
+  const partes =
+    texto.split("/");
+
+
+  if (partes.length === 3) {
+
+    return (
+      partes[2] +
+      "-" +
+      partes[1].padStart(2, "0") +
+      "-" +
+      partes[0].padStart(2, "0")
+    );
+
+  }
+
+
+  const d =
+    new Date(valor);
+
+
+  if (
+    !isNaN(d.getTime())
+  ) {
+
+    return (
+      d.getFullYear() +
+      "-" +
+      String(
+        d.getMonth() + 1
+      ).padStart(2, "0") +
+      "-" +
+      String(
+        d.getDate()
+      ).padStart(2, "0")
+    );
+
+  }
+
+
+  return texto.substring(
+    0,
+    10
+  );
+
+}
+
+
+// ========================================================
+// HORA
+// ========================================================
+
+function obtenerHoraLimpia(horaRaw) {
+
+  if (!horaRaw) return "";
+
+  // Si viene como objeto Date
+  if (horaRaw instanceof Date) {
+
+    return horaRaw.toLocaleTimeString("es-PE", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    });
+
+  }
+
+  const str = String(horaRaw).trim();
+
+  // Ejemplo:
+  // 1899-12-30T14:25:43.000Z
+  if (str.includes("T")) {
+
+    const fecha = new Date(str);
+
+    if (!isNaN(fecha.getTime())) {
+
+      return fecha.toLocaleTimeString("es-PE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+
+    }
+
+  }
+
+  // Si ya viene como 14:25:43
+  const match = str.match(
+    /(\d{2}):(\d{2}):(\d{2})/
+  );
+
+  if (match) {
+
+    return `${match[1]}:${match[2]}:${match[3]}`;
+
+  }
+
+  return str;
+
+}
+
+
+// ========================================================
+// ESTADO
+// ========================================================
+
+function estadoRegistro(r) {
+
+  // Si Apps Script ya lo guardó
+  if (
+    r.estado === "PUNTUAL" ||
+    r.estado === "TARDE"
+  ) {
+
+    return r.estado;
+
+  }
+
+
+  const hora =
+    obtenerHoraLimpia(r.hora);
+
+
+  if (!hora) {
+
+    return "PUNTUAL";
+
+  }
+
+
+  // ANTES de 08:00 = puntual
+  // 08:00 o después = tarde
+
+  return hora < "08:00:00"
+    ? "PUNTUAL"
+    : "TARDE";
+
+}
+
+
+// ========================================================
+// ACTUALIZAR TODO
+// ========================================================
+
+function actualizar() {
+
+  const fechaFiltro =
+    document.getElementById(
+      "fecha"
+    ).value;
+
+
+  const gradoFiltro =
+    document.getElementById(
+      "grado"
+    ).value;
+
+
+  const seccionFiltro =
+    document.getElementById(
+      "seccion"
+    ).value;
+
+
+  const estadoFiltro =
+    document.getElementById(
+      "estado"
+    ).value;
+
+
+  const fechaSeleccionada =
+    fechaFiltro || fechaHoy();
+
+
+  // ------------------------------------------------------
+  // REGISTROS DEL DÍA
+  // ------------------------------------------------------
+
+  let registrosDia =
+    registros.filter(r => {
+
+      return (
+        obtenerFechaLocalISO(r.fecha)
+        === fechaSeleccionada
+      );
+
+    });
+
+
+  // ------------------------------------------------------
+  // FILTRO GRADO Y SECCIÓN
+  // ------------------------------------------------------
+
+  registrosDia =
+    registrosDia.filter(r => {
+
+      if (
+        gradoFiltro &&
+        String(r.grado) !== gradoFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        seccionFiltro &&
+        String(r.seccion) !== seccionFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      return true;
+
+    });
+
+
+  // ------------------------------------------------------
+  // FILTRO ESTADO
+  // ------------------------------------------------------
+
+  let datosTabla;
+
+
+  if (estadoFiltro === "AUSENTE") {
+
+    datosTabla =
+      obtenerAusentes(
+        fechaSeleccionada,
+        gradoFiltro,
+        seccionFiltro
+      );
+
+  }
+
+  else {
+
+    datosTabla =
+      registrosDia.filter(r => {
+
+        if (!estadoFiltro) {
+
+          return true;
+
+        }
+
+
+        return (
+          estadoRegistro(r)
+          === estadoFiltro
+        );
+
+      });
+
+  }
+
+
+  mostrarTabla(datosTabla);
+
+
+  estadisticas(
+    fechaSeleccionada,
+    gradoFiltro,
+    seccionFiltro
+  );
+
+
+  mostrarAusentes(
+    fechaSeleccionada,
+    gradoFiltro,
+    seccionFiltro
+  );
+
+
+  mostrarResumen(
+    fechaSeleccionada,
+    gradoFiltro,
+    seccionFiltro
+  );
+
+}
+
+
+// ========================================================
+// OBTENER AUSENTES
+// ========================================================
+
+function obtenerAusentes(
+  fecha,
+  gradoFiltro,
+  seccionFiltro
+) {
+
+  const presentes =
+    new Set();
+
+
+  registros.forEach(r => {
+
+    if (
+      obtenerFechaLocalISO(r.fecha)
+      !== fecha
+    ) {
+
+      return;
+
+    }
+
+
+    presentes.add(
+      String(r.id).trim()
+    );
+
+  });
+
+
+  return alumnos
+
+    .filter(a => {
+
+      const id =
+        String(a.id).trim();
+
+
+      if (
+        presentes.has(id)
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        gradoFiltro &&
+        String(a.grado)
+        !== gradoFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        seccionFiltro &&
+        String(a.seccion)
+        !== seccionFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      return true;
+
+    })
+
+    .map(a => ({
+
+      fecha: fecha,
+
+      hora: "--:--:--",
+
+      id: a.id,
+
+      nombre: a.nombre,
+
+      grado: a.grado,
+
+      seccion: a.seccion,
+
+      estado: "AUSENTE"
+
+    }));
+
+}
+
+
+// ========================================================
+// TABLA PRINCIPAL
+// ========================================================
+
+function mostrarTabla(datos) {
+
+  const tabla =
+    document.getElementById(
+      "tabla"
+    );
+
+
+  tabla.innerHTML = "";
+
+
+  if (!datos.length) {
+
+    tabla.innerHTML =
+      `<tr>
+        <td colspan="7"
+            style="text-align:center;">
+          No hay registros para los filtros seleccionados.
+        </td>
+       </tr>`;
+
+    return;
+
+  }
+
+
+  datos.forEach(r => {
+
+    const estado =
+      r.estado ||
+      estadoRegistro(r);
+
+
+    const clase =
+      estado === "PUNTUAL"
+        ? "puntual"
+        : estado === "TARDE"
+          ? "tarde"
+          : "ausente";
+
+
+    const fecha =
+      obtenerFechaLocalISO(
+        r.fecha
+      );
+
+
+    const hora =
+      obtenerHoraLimpia(
+        r.hora
+      ) ||
+      "--:--:--";
+
+
+    tabla.innerHTML += `
+
+      <tr>
+
+        <td>${escapeHTML(fecha)}</td>
+
+        <td>${escapeHTML(hora)}</td>
+
+        <td>${escapeHTML(r.id)}</td>
+
+        <td>${escapeHTML(r.nombre)}</td>
+
+        <td>${escapeHTML(r.grado)}</td>
+
+        <td>${escapeHTML(r.seccion)}</td>
+
+        <td class="${clase}">
+          ${escapeHTML(estado)}
+        </td>
+
+      </tr>
+
+    `;
+
+  });
+
+}
+
+
+// ========================================================
+// ESTADÍSTICAS
+// ========================================================
+
+function estadisticas(
+  fecha,
+  gradoFiltro,
+  seccionFiltro
+) {
+
+  // ------------------------------------------------------
+  // ALUMNOS FILTRADOS
+  // ------------------------------------------------------
+
+  const alumnosFiltrados =
+    alumnos.filter(a => {
+
+      if (
+        gradoFiltro &&
+        String(a.grado)
+        !== gradoFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        seccionFiltro &&
+        String(a.seccion)
+        !== seccionFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      return true;
+
+    });
+
+
+  // ------------------------------------------------------
+  // REGISTROS DEL DÍA
+  // ------------------------------------------------------
+
+  const registrosDia =
+    registros.filter(r => {
+
+      if (
+        obtenerFechaLocalISO(
+          r.fecha
+        ) !== fecha
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        gradoFiltro &&
+        String(r.grado)
+        !== gradoFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        seccionFiltro &&
+        String(r.seccion)
+        !== seccionFiltro
+      ) {
+
+        return false;
+
+      }
+
+
+      return true;
+
+    });
+
+
+  // ------------------------------------------------------
+  // EVITAR DUPLICADOS
+  // ------------------------------------------------------
+
+  const presentes =
+    new Map();
+
+
+  registrosDia.forEach(r => {
+
+    const id =
+      String(r.id).trim();
+
+
+    if (!presentes.has(id)) {
+
+      presentes.set(
+        id,
+        r
+      );
+
+    }
+
+  });
+
+
+  const lista =
+    Array.from(
+      presentes.values()
+    );
+
+
+  const puntuales =
+    lista.filter(
+      r =>
+        estadoRegistro(r)
+        === "PUNTUAL"
+    ).length;
+
+
+  const tardes =
+    lista.filter(
+      r =>
+        estadoRegistro(r)
+        === "TARDE"
+    ).length;
+
+
+  const presentesTotal =
+    lista.length;
+
+
+  const ausentes =
+    Math.max(
+      0,
+      alumnosFiltrados.length
+      - presentesTotal
+    );
+
+
+  // ------------------------------------------------------
+  // MOSTRAR
+  // ------------------------------------------------------
+
+  document.getElementById(
+    "total"
+  ).innerText =
+    lista.length;
+
+
+  document.getElementById(
+    "alumnos"
+  ).innerText =
+    alumnosFiltrados.length;
+
+
+  document.getElementById(
+    "presentes"
+  ).innerText =
+    presentesTotal;
+
+
+  document.getElementById(
+    "ausentesTotal"
+  ).innerText =
+    ausentes;
+
+
+  document.getElementById(
+    "puntuales"
+  ).innerText =
+    puntuales;
+
+
+  document.getElementById(
+    "tardes"
+  ).innerText =
+    tardes;
+
+}
+
+
+// ========================================================
+// TABLA DE AUSENTES
+// ========================================================
+
+function mostrarAusentes(
+  fecha,
+  gradoFiltro,
+  seccionFiltro
+) {
+
+  const lista =
+    obtenerAusentes(
+      fecha,
+      gradoFiltro,
+      seccionFiltro
+    );
+
+
+  const tabla =
+    document.getElementById(
+      "ausentes"
+    );
+
+
+  tabla.innerHTML = "";
+
+
+  if (!lista.length) {
+
+    tabla.innerHTML =
+      `<tr>
+        <td colspan="4"
+            style="text-align:center;">
+          ✅ No hay alumnos ausentes.
+        </td>
+       </tr>`;
+
+    return;
+
+  }
+
+
+  lista.forEach(a => {
+
+    tabla.innerHTML += `
+
+      <tr>
+
+        <td>${escapeHTML(a.id)}</td>
+
+        <td>${escapeHTML(a.nombre)}</td>
+
+        <td>${escapeHTML(a.grado)}</td>
+
+        <td>${escapeHTML(a.seccion)}</td>
+
+      </tr>
+
+    `;
+
+  });
+
+}
+
+
+// ========================================================
+// RESUMEN POR GRADO Y SECCIÓN
+// ========================================================
+
+function mostrarResumen(
+  fecha,
+  gradoFiltro,
+  seccionFiltro
+) {
+
+  const resumen = {};
+
+
+  // ------------------------------------------------------
+  // TOTAL DE ALUMNOS
+  // ------------------------------------------------------
+
+  alumnos.forEach(a => {
+
+    if (
+      gradoFiltro &&
+      String(a.grado)
+      !== gradoFiltro
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      seccionFiltro &&
+      String(a.seccion)
+      !== seccionFiltro
+    ) {
+
+      return;
+
+    }
+
+
+    const key =
+      `${a.grado}|${a.seccion}`;
+
+
+    if (!resumen[key]) {
+
+      resumen[key] = {
+
+        grado: a.grado,
+
+        seccion: a.seccion,
+
+        total: 0,
+
+        presentes: new Set()
+
+      };
+
+    }
+
+
+    resumen[key].total++;
+
+  });
+
+
+  // ------------------------------------------------------
+  // PRESENTES
+  // ------------------------------------------------------
+
+  registros.forEach(r => {
+
+    if (
+      obtenerFechaLocalISO(
+        r.fecha
+      ) !== fecha
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      gradoFiltro &&
+      String(r.grado)
+      !== gradoFiltro
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      seccionFiltro &&
+      String(r.seccion)
+      !== seccionFiltro
+    ) {
+
+      return;
+
+    }
+
+
+    const key =
+      `${r.grado}|${r.seccion}`;
+
+
+    if (!resumen[key]) {
+
+      return;
+
+    }
+
+
+    resumen[key].presentes.add(
+      String(r.id).trim()
+    );
+
+  });
+
+
+  const tabla =
+    document.getElementById(
+      "resumen"
+    );
+
+
+  tabla.innerHTML = "";
+
+
+  const claves =
+    Object.keys(resumen).sort();
+
+
+  if (!claves.length) {
+
+    tabla.innerHTML =
+      `<tr>
+        <td colspan="6"
+            style="text-align:center;">
+          No hay información.
+        </td>
+       </tr>`;
+
+    return;
+
+  }
+
+
+  claves.forEach(key => {
+
+    const item =
+      resumen[key];
+
+
+    const presentes =
+      item.presentes.size;
+
+
+    const ausentes =
+      Math.max(
+        0,
+        item.total
+        - presentes
+      );
+
+
+    const porcentaje =
+      item.total > 0
+        ? (
+            presentes /
+            item.total *
+            100
+          ).toFixed(1)
+        : "0.0";
+
+
+    tabla.innerHTML += `
+
+      <tr>
+
+        <td>
+          ${escapeHTML(item.grado)}
+        </td>
+
+        <td>
+          ${escapeHTML(item.seccion)}
+        </td>
+
+        <td>
+          ${item.total}
+        </td>
+
+        <td>
+          ${presentes}
+        </td>
+
+        <td>
+          ${ausentes}
+        </td>
+
+        <td>
+          ${porcentaje}%
+        </td>
+
+      </tr>
+
+    `;
+
+  });
+
+}
+
+
+// ========================================================
+// EXPORTAR EXCEL
+// ========================================================
+
+function exportarExcel() {
+
+  const tabla =
+    document.getElementById(
+      "tablaExport"
+    );
+
+
+  const wb =
+    XLSX.utils.table_to_book(
+      tabla,
+      {
+        sheet: "Asistencia"
+      }
+    );
+
+
+  const fecha =
+    document.getElementById(
+      "fecha"
+    ).value ||
+    fechaHoy();
+
+
+  const grado =
+    document.getElementById(
+      "grado"
+    ).value ||
+    "Todos";
+
+
+  const seccion =
+    document.getElementById(
+      "seccion"
+    ).value ||
+    "Todas";
+
+
+  const nombreArchivo =
+    `Reporte_Asistencia_${fecha}_${grado}_${seccion}.xlsx`;
+
+
+  XLSX.writeFile(
+    wb,
+    nombreArchivo
+  );
+
+}
+
+
+// ========================================================
+// PROTECCIÓN CONTRA HTML
+// ========================================================
+
+function escapeHTML(valor) {
+
+  if (
+    valor === null ||
+    valor === undefined
+  ) {
+
+    return "";
+
+  }
+
+
+  return String(valor)
+
+    .replace(/&/g, "&amp;")
+
+    .replace(/</g, "&lt;")
+
+    .replace(/>/g, "&gt;")
+
+    .replace(/"/g, "&quot;")
+
+    .replace(/'/g, "&#039;");
+
+}
+
+
+// ========================================================
+// EVENTOS
+// ========================================================
+
+document
+  .getElementById("fecha")
+  .addEventListener(
+    "change",
+    actualizar
+  );
+
+
+document
+  .getElementById("grado")
+  .addEventListener(
+    "change",
+    actualizar
+  );
+
+
+document
+  .getElementById("seccion")
+  .addEventListener(
+    "change",
+    actualizar
+  );
+
+
+document
+  .getElementById("estado")
+  .addEventListener(
+    "change",
+    actualizar
+  );
+
+
+// ========================================================
+// INICIAR
+// ========================================================
+
+cargarDatos();
+
+
+</script>
+
+</body>
+
+</html>
